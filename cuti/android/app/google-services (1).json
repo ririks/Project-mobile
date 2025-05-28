@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "26081887779",
+    "project_id": "cuti-79bd2",
+    "storage_bucket": "cuti-79bd2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26081887779:android:33f56eb1c95142a0f6d396",
+        "android_client_info": {
+          "package_name": "com.riri.cuti"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRpTKgxvkubPp6Xts48Xl2AU1EsU7SRAg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
