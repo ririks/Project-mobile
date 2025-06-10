@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'register.dart'; 
-import 'homepage.dart'; 
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'homepage.dart';
+import 'dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -9,29 +10,75 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _emailController = TextEditingController(); 
   final _passwordController = TextEditingController();
   bool _obscureTextPassword = true;
 
-  static const Color primaryColor = Color(0xFFFDD835); 
+  static const Color primaryColor = Color(0xFFFDD835);
   static const Color darkGrey = Color(0xFF424242);
 
   static const String loginTitle = 'Selamat Datang Kembali!';
   static const String loginSubtitle = 'Masuk untuk melanjutkan cuti Anda.';
-  static const String emailLabel = 'Email';
+  static const String nikLabel = 'NIK'; 
   static const String passwordLabel = 'Kata Sandi';
   static const String loginButton = 'Masuk';
   static const String forgotPassword = 'Lupa Kata Sandi?';
-  static const String dontHaveAccount = 'Belum punya akun? ';
-  static const String registerNow = 'Daftar Sekarang';
 
   Future<void> _login() async {
-    // Implementasi logika login Anda di sini.
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showErrorDialog('Email dan Kata Sandi harus diisi!');
+    final nik = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (nik.isEmpty || password.isEmpty) {
+      _showErrorDialog('NIK dan Kata Sandi harus diisi!');
       return;
     }
-    _showLoadingAndNavigate();
+
+    try {
+      _showLoading();
+
+      final admin =
+          await Supabase.instance.client
+              .from('admin')
+              .select()
+              .eq('nik', nik)
+              .eq('password', password)
+              .maybeSingle();
+
+      if (admin != null) {
+        if (mounted) Navigator.of(context).pop(); 
+        final adminId = admin['id_admin'];
+        if (mounted) Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Dashboard(idAdmin: adminId)),
+        );
+        return;
+      }
+
+      final karyawan =
+          await Supabase.instance.client
+              .from('karyawan')
+              .select()
+              .eq('nik', nik)
+              .eq('password', password)
+              .maybeSingle();
+
+      if (mounted) Navigator.of(context).pop(); 
+
+      if (karyawan != null) {
+        final karyawanId = karyawan['id_karyawan'];
+        if (mounted) {
+          Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage(idUser: karyawanId)),
+        );
+        }
+      } else {
+        _showErrorDialog('NIK atau Kata Sandi salah.');
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop(); // Tutup loading
+      _showErrorDialog('Terjadi kesalahan saat login. Silakan coba lagi.');
+    }
   }
 
   void _showErrorDialog(String message) {
@@ -43,9 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text(message),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('OK'),
             ),
           ],
@@ -54,20 +99,20 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showLoadingAndNavigate() {
+  void _showLoading() {
     showDialog(
       context: context,
-      barrierDismissible: false, 
+      barrierDismissible: false,
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
+            children: [             
               Image.asset(
-                'lib/assets/images/logos.png', 
-                width: 150, 
+                'lib/assets/images/logo.png', 
+                width: 150,
                 height: 150,
               ),
               const SizedBox(height: 20),
@@ -84,14 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       },
     );
-
-    Future.delayed(const Duration(seconds: 1), () {
-      Navigator.of(context).pop(); 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()), 
-      );
-    });
   }
 
   @override
@@ -108,9 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Container(
               width: screenWidth,
               height: screenHeight,
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.8), 
-              ),
+              decoration: BoxDecoration(color: primaryColor.withOpacity(0.8)),
               child: Stack(
                 children: [
                   Positioned(
@@ -122,10 +157,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
-                          center: Alignment.center,
                           colors: [
-                            primaryColor.withOpacity(0.5), 
-                            primaryColor.withOpacity(0.8), 
+                            primaryColor.withOpacity(0.5),
+                            primaryColor.withOpacity(0.8),
                           ],
                           stops: const [0.4, 1.0],
                           radius: 0.3,
@@ -140,14 +174,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         SizedBox(height: screenHeight * 0.06),
                         Image.asset(
-                          'lib/assets/images/logos.png', 
+                          'lib/assets/images/logo.png', 
                           width: screenWidth * 0.45,
                         ),
                         SizedBox(height: screenHeight * 0.02),
-                        Text(
+                        const Text(
                           loginSubtitle,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -159,16 +193,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-
             AnimatedPositioned(
               duration: const Duration(milliseconds: 600),
               curve: Curves.easeInOutCubic,
-              top: keyboardHeight > 0 ? screenHeight * 0.20 : screenHeight * 0.35, 
+              top:
+                  keyboardHeight > 0
+                      ? screenHeight * 0.20
+                      : screenHeight * 0.35,
               bottom: 0,
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 32.0,
+                ),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
@@ -184,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                child: SingleChildScrollView( 
+                child: SingleChildScrollView(
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -200,16 +239,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         SizedBox(height: screenHeight * 0.03),
-
                         _buildTextField(
                           controller: _emailController,
-                          labelText: emailLabel,
-                          icon: Icons.email_outlined,
-                          keyboardType: TextInputType.emailAddress,
+                          labelText: nikLabel, 
+                          icon: Icons.badge_outlined, 
+                          keyboardType: TextInputType.number, 
                           fontSize: 16,
                         ),
                         SizedBox(height: screenHeight * 0.02),
-
                         _buildPasswordField(
                           controller: _passwordController,
                           labelText: passwordLabel,
@@ -221,17 +258,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           fontSize: 16,
                         ),
-                        SizedBox(height: screenHeight * 0.01),
-
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () {
-                              // Handle forgot password logic
+                              // Aksi untuk lupa kata sandi
                             },
-                            child: Text(
+                            child: const Text(
                               forgotPassword,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: primaryColor,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -239,13 +274,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         SizedBox(height: screenHeight * 0.03),
-
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             foregroundColor: darkGrey,
-                            padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+                            padding: EdgeInsets.symmetric(
+                              vertical: screenHeight * 0.02,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12.0),
                             ),
@@ -258,36 +294,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                        SizedBox(height: screenHeight * 0.02),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              dontHaveAccount,
-                              style: TextStyle(
-                                color: darkGrey.withOpacity(0.7),
-                                fontSize: 16,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => RegisterScreen()),
-                                );
-                              },
-                              child: Text(
-                                registerNow,
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
@@ -311,12 +317,17 @@ class _LoginScreenState extends State<LoginScreen> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      validator: (value) => value == null || value.isEmpty ? 'Harap isi $labelText' : null,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: TextStyle(color: darkGrey.withOpacity(0.7), fontSize: fontSize),
-        prefixIcon: icon != null
-            ? Icon(icon, color: primaryColor.withOpacity(0.7))
-            : null,
+        labelStyle: TextStyle(
+          color: darkGrey.withOpacity(0.7),
+          fontSize: fontSize,
+        ),
+        prefixIcon:
+            icon != null
+                ? Icon(icon, color: primaryColor.withOpacity(0.7))
+                : null,
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(color: primaryColor.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(12.0),
@@ -329,12 +340,15 @@ class _LoginScreenState extends State<LoginScreen> {
           borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
           borderRadius: BorderRadius.circular(12.0),
         ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.red, width: 2.0),
-          borderRadius: BorderRadius.circular(12.0),
+        focusedErrorBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.red, width: 2.0),
+          borderRadius: BorderRadius.all(Radius.circular(12.0)),
         ),
-        isDense: true, // Membuat input field lebih ringkas
-        contentPadding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 10.0), 
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12.0,
+          horizontal: 10.0,
+        ),
         fillColor: Colors.grey.shade50,
         filled: true,
       ),
@@ -352,10 +366,26 @@ class _LoginScreenState extends State<LoginScreen> {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
+      validator: (value) => value == null || value.isEmpty ? 'Harap isi $labelText' : null,
       decoration: InputDecoration(
         labelText: labelText,
-        labelStyle: TextStyle(color: darkGrey.withOpacity(0.7), fontSize: fontSize),
-        prefixIcon: Icon(Icons.lock_outline, color: primaryColor.withOpacity(0.7)),
+        labelStyle: TextStyle(
+          color: darkGrey.withOpacity(0.7),
+          fontSize: fontSize,
+        ),
+        prefixIcon: Icon(
+          Icons.lock_outline,
+          color: primaryColor.withOpacity(0.7),
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscureText
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            color: darkGrey.withOpacity(0.7),
+          ),
+          onPressed: onPressedSuffix,
+        ),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(color: primaryColor.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(12.0),
@@ -368,19 +398,15 @@ class _LoginScreenState extends State<LoginScreen> {
           borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
           borderRadius: BorderRadius.circular(12.0),
         ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.red, width: 2.0),
-          borderRadius: BorderRadius.circular(12.0),
+        focusedErrorBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.red, width: 2.0),
+          borderRadius: BorderRadius.all(Radius.circular(12.0)),
         ),
-        suffixIcon: IconButton(
-          icon: Icon(
-            obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-            color: darkGrey.withOpacity(0.7),
-          ),
-          onPressed: onPressedSuffix,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 12.0,
+          horizontal: 10.0,
         ),
-        isDense: true, 
-        contentPadding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 10.0), 
         fillColor: Colors.grey.shade50,
         filled: true,
       ),

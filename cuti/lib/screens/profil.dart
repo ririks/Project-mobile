@@ -1,26 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfilPage extends StatefulWidget {
-  const ProfilPage({super.key});
+  final int idUser;
+
+  const ProfilPage({super.key, required this.idUser});
 
   @override
   State<ProfilPage> createState() => _ProfilPageState();
 }
 
 class _ProfilPageState extends State<ProfilPage> with SingleTickerProviderStateMixin {
-  final TextEditingController _fullNameController = TextEditingController(text: 'Nama Lengkap Pengguna');
-  final TextEditingController _emailController = TextEditingController(text: 'pengguna.email@example.com');
-  final TextEditingController _passwordController = TextEditingController(text: '********'); 
-  final FocusNode _fullNameFocusNode = FocusNode();
-  final FocusNode _emailFocusNode = FocusNode();
-  final FocusNode _passwordFocusNode = FocusNode();
+  final supabase = Supabase.instance.client;
 
-  bool _isEditingFullName = false;
-  bool _isEditingEmail = false;
-  bool _isEditingPassword = false;
+  final TextEditingController _namaController = TextEditingController();
+  final TextEditingController _nikController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _alamatController = TextEditingController();
+  final TextEditingController _jkController = TextEditingController();
+  final TextEditingController _telpController = TextEditingController();
+  final TextEditingController _bagianController = TextEditingController();
 
   late AnimationController _buttonAnimationController;
   late Animation<double> _buttonScaleAnimation;
+
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -30,75 +34,68 @@ class _ProfilPageState extends State<ProfilPage> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 300),
     );
     _buttonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(
-        parent: _buttonAnimationController,
-        curve: Curves.easeOut,
-      ),
+      CurvedAnimation(parent: _buttonAnimationController, curve: Curves.easeOut),
     );
+    _loadUserData();
   }
 
-  @override
-  void dispose() {
-    _fullNameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _fullNameFocusNode.dispose();
-    _emailFocusNode.dispose();
-    _passwordFocusNode.dispose();
-    _buttonAnimationController.dispose();
-    super.dispose();
+  Future<void> _loadUserData() async {
+    try {
+      final karyawan = await supabase
+    .from('karyawan')
+    .select()
+    .eq('id_karyawan', widget.idUser)
+    .single();
+
+final bagian = await supabase
+    .from('bagian')
+    .select('nm_bag')
+    .eq('id_bag', karyawan['id_bag'])
+    .single();
+
+setState(() {
+  _nikController.text = karyawan['nik'] ?? '';
+  _passwordController.text = karyawan['password'] ?? '';
+  _namaController.text = karyawan['nm_karyawan'] ?? '';
+  _alamatController.text = karyawan['alamat'] ?? '';
+  _jkController.text = karyawan['j_kel'] ?? '';
+  _telpController.text = karyawan['telp'] ?? '';
+  _bagianController.text = bagian['nm_bag'] ?? '';
+  _isLoading = false;
+});
+
+    } catch (e) {
+      print('Gagal mengambil data karyawan: $e');
+      setState(() => _isLoading = false);
+    }
   }
 
   void _handleLogout() {
-    _buttonAnimationController.forward().then((_) {
-      _buttonAnimationController.reverse();
-    });
+    _buttonAnimationController.forward().then((_) => _buttonAnimationController.reverse());
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: const Text(
-            "Konfirmasi Logout",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF424242),
-            ),
-          ),
-          content: const Text(
-            "Apakah Anda yakin ingin keluar dari akun?",
-            style: TextStyle(color: Color(0xFF757575)),
-          ),
-          actions: <Widget>[
+          title: const Text("Konfirmasi Logout"),
+          content: const Text("Apakah Anda yakin ingin keluar dari akun?"),
+          actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text(
-                "Batal",
-                style: TextStyle(color: Color(0xFF757575)),
-              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Batal"),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Anda telah berhasil logout!'),
                     backgroundColor: Color(0xFFFDD835),
-                    behavior: SnackBarBehavior.floating,
                   ),
                 );
-                print('User logged out!');
+                Navigator.of(context).pushReplacementNamed('/login');
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
               child: const Text("Logout"),
             ),
           ],
@@ -107,188 +104,118 @@ class _ProfilPageState extends State<ProfilPage> with SingleTickerProviderStateM
     );
   }
 
-  void _toggleEdit(String fieldName) {
-    setState(() {
-      if (fieldName == 'fullName') {
-        _isEditingFullName = !_isEditingFullName;
-        if (_isEditingFullName) {
-          _fullNameFocusNode.requestFocus();
-        } else {
-          _fullNameFocusNode.unfocus(); 
-          print('Full Name updated to: ${_fullNameController.text}');
-        }
-      } else if (fieldName == 'email') {
-        _isEditingEmail = !_isEditingEmail;
-        if (_isEditingEmail) {
-          _emailFocusNode.requestFocus();
-        } else {
-          _emailFocusNode.unfocus();
-          print('Email updated to: ${_emailController.text}');
-        }
-      } else if (fieldName == 'password') {
-        _isEditingPassword = !_isEditingPassword;
-        if (_isEditingPassword) {
-          _passwordFocusNode.requestFocus();
-        } else {
-          _passwordFocusNode.unfocus();
-          print('Password updated to: ${_passwordController.text}');
-        }
-      }
-    });
+  String getInitials(String name) {
+  List<String> parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
+  } else if (parts.isNotEmpty) {
+    return parts[0][0].toUpperCase();
+  }
+  return '';
+}
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _nikController.dispose();
+    _passwordController.dispose();
+    _alamatController.dispose();
+    _jkController.dispose();
+    _telpController.dispose();
+    _bagianController.dispose();
+    _buttonAnimationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            const SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFDD835)))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  const SizedBox(height: 20),
+                 CircleAvatar(
+  radius: 60,
+  backgroundColor: const Color(0xFFFDD835),
+  child: Text(
+    getInitials(_namaController.text),
+    style: const TextStyle(
+      fontSize: 32,
+      fontWeight: FontWeight.bold,
+      color: Colors.black,
+    ),
+  ),
+),
+
+                  const SizedBox(height: 50),
+                  Text(
+                    _namaController.text,
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 5),
+                  const Text('Status: Aktif', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                  const SizedBox(height: 30),
+
+                  _buildInfoField(controller: _nikController, label: 'NIK', icon: Icons.badge_outlined),
+                  const SizedBox(height: 20),
+                  _buildInfoField(controller: _passwordController, label: 'Password', icon: Icons.lock_outline, obscureText: true),
+                  const SizedBox(height: 20),
+                  _buildInfoField(controller: _alamatController, label: 'Alamat', icon: Icons.home_outlined),
+                  const SizedBox(height: 20),
+                  _buildInfoField(controller: _jkController, label: 'Jenis Kelamin', icon: Icons.person_2_outlined),
+                  const SizedBox(height: 20),
+                  _buildInfoField(controller: _telpController, label: 'Telepon', icon: Icons.phone_outlined),
+                  const SizedBox(height: 20),
+                  _buildInfoField(controller: _bagianController, label: 'Bagian', icon: Icons.work_outline),
+
+                  const SizedBox(height: 40),
+                  ScaleTransition(
+                    scale: _buttonScaleAnimation,
+                    child: ElevatedButton(
+                      onPressed: _handleLogout,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                      ),
+                      child: const Text('Logout', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ],
               ),
-              child: const CircleAvatar(
-                radius: 60,
-                backgroundColor: Color(0xFFFDD835),
-                backgroundImage: NetworkImage(
-                  'https://placehold.co/120x120/FDD835/424242?text=PP',
-                ),
-              ),
             ),
-            const SizedBox(height: 50),
-            const Text(
-              'Nama Lengkap Pengguna',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF424242),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 5),
-            Text(
-              'Status: Aktif',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-            _buildEditableInfoField(
-              controller: _fullNameController,
-              label: 'Nama Lengkap',
-              icon: Icons.person_outline,
-              isEditing: _isEditingFullName,
-              focusNode: _fullNameFocusNode,
-              onEditTap: () => _toggleEdit('fullName'),
-            ),
-            const SizedBox(height: 20),
-            _buildEditableInfoField(
-              controller: _emailController,
-              label: 'Email',
-              icon: Icons.email_outlined,
-              isEditing: _isEditingEmail,
-              focusNode: _emailFocusNode,
-              onEditTap: () => _toggleEdit('email'),
-            ),
-            const SizedBox(height: 20),
-            _buildEditableInfoField(
-              controller: _passwordController,
-              label: 'Password',
-              icon: Icons.lock_outline,
-              obscureText: !_isEditingPassword,
-              isEditing: _isEditingPassword,
-              focusNode: _passwordFocusNode,
-              onEditTap: () => _toggleEdit('password'),
-            ),
-            const SizedBox(height: 40),
-            ScaleTransition(
-              scale: _buttonScaleAnimation,
-              child: Center(
-                child: ElevatedButton(
-                  onPressed: _handleLogout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                    elevation: 5,
-                  ),
-                  child: const Text(
-                    'Logout',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildEditableInfoField({
+  Widget _buildInfoField({
     required TextEditingController controller,
     required String label,
     IconData? icon,
     bool obscureText = false,
-    required bool isEditing,
-    required FocusNode focusNode,
-    required VoidCallback onEditTap,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF424242),
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
-          readOnly: !isEditing,
+          readOnly: true,
           obscureText: obscureText,
-          focusNode: focusNode,
           decoration: InputDecoration(
             prefixIcon: icon != null ? Icon(icon, color: const Color(0xFFFDD835)) : null,
-            suffixIcon: IconButton(
-              icon: Icon(
-                isEditing ? Icons.check : Icons.edit, 
-                color: const Color(0xFFFDD835),
-              ),
-              onPressed: onEditTap, 
-            ),
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFFDD835), width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
           ),
         ),
       ],

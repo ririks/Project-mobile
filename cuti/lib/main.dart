@@ -1,9 +1,19 @@
 import 'package:cuti/screens/login.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://kqgdbpiaeweqfrdoixzr.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxZ2RicGlhZXdlcWZyZG9peHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1MTk4MTAsImV4cCI6MjA2NDA5NTgxMH0.AJPrUk3LxYAcRR1ORbvMHs6gXbEWOK7sbS6T2ko3bzg',
+  );
+
   runApp(const MyApp());
 }
+
+final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -11,12 +21,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Aplikasi Pendaftaran & Login', 
+      title: 'Aplikasi Cuti',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFFFDD835)), 
-        useMaterial3: true, 
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFFDD835)),
+        useMaterial3: true,
       ),
-      home: LoginScreen(), 
+      home: LoginScreen(),
+      routes: {
+        '/login': (context) => LoginScreen(),
+        // Tambahkan route lain jika perlu, misal profil:
+        // '/profil': (context) => ProfilPage(idUser: someId),
+      },
     );
   }
 }
