@@ -1,6 +1,8 @@
 import 'package:cuti/screens/login.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cuti/dashboard_v2/dashboard2.dart';
+import 'dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginScreen(),
         // Tambahkan route lain jika perlu, misal profil:
         // '/profil': (context) => ProfilPage(idUser: someId),
+        '/dashboard': (context) => Dashboard(),
       },
     );
   }

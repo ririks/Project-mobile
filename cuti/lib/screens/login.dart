@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'homepage.dart';
-import 'dashboard.dart';
+import '../dashboard_v2/dashboard2.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final adminId = admin['id_admin'];
         if (mounted) Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => Dashboard(idAdmin: adminId)),
+          MaterialPageRoute(builder: (context) => AppDrawer(idAdmin: adminId, nik: '$nik', onLogout: () {},)),
         );
         return;
       }
