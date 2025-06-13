@@ -1,58 +1,74 @@
+import 'package:cuti/dashboard_v2/Pages/input-karyawan.dart';
 import 'package:flutter/material.dart';
-import 'Pages/main_dashboard.dart';
-import 'Pages/register_admin.dart';
-import 'Pages/manage.dart';
+import 'package:cuti/dashboard_v2/pages/register_admin.dart';
 
-class Dashboard2 extends StatefulWidget {
-  const Dashboard2({super.key});
+class AppDrawer extends StatelessWidget {
+  final int idAdmin;
+  final String nik;
+  final VoidCallback onLogout;
 
-  @override
-  State<Dashboard2> createState() => _Dashboard2State();
-}
-
-class _Dashboard2State extends State<Dashboard2> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _pages = [
-    const MainDashboard(),
-    const RegisterAdminPage(),
-    const ManageRecipesPage(),
-  ];
+  const AppDrawer({Key? key, required this.nik, required this.onLogout, required this.idAdmin}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(['Dashboard Admin', 'Register Admin', 'Atur Resep'][_selectedIndex]),
-        backgroundColor: Colors.orange,
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            accountName: Text('Admin'),
+            accountEmail: Text('NIK: $nik'),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.admin_panel_settings, color: Colors.blue),
+            ),
+          ),
+          ListTile(
+            leading: Icon(Icons.dashboard),
+            title: Text('Dashboard'),
+            onTap: () {
+              Navigator.pushNamed(context, '/dashboard');
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.person_add),
+            title: Text('Register Admin'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RegisterAdminPage(nik: nik, idAdmin: idAdmin,),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.group_add),
+            title: Text('Input Karyawan'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InputKaryawanPage(nik: nik, idAdmin: idAdmin,),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.assignment),
+            title: Text('Approval Page'),
+            onTap: () {
+              Navigator.pushNamed(context, '/approval');
+            },
+          ),
+          Spacer(),
+          Divider(),
+          ListTile(
+            leading: Icon(Icons.logout, color: Colors.red),
+            title: Text('Logout', style: TextStyle(color: Colors.red)),
+            onTap: onLogout,
+          ),
+        ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.orange),
-              child: Text('Menu Admin', style: TextStyle(color: Colors.white, fontSize: 24)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: const Text('Dashboard'),
-              onTap: () => setState(() => _selectedIndex = 0),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_add),
-              title: const Text('Register Admin'),
-              onTap: () => setState(() => _selectedIndex = 1),
-            ),
-            ListTile(
-              leading: const Icon(Icons.food_bank),
-              title: const Text('Atur Resep'),
-              onTap: () => setState(() => _selectedIndex = 2),
-            ),
-          ],
-        ),
-      ),
-      body: _pages[_selectedIndex],
     );
   }
 }
