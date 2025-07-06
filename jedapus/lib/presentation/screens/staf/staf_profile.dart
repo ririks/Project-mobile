@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:jedapus/presentation/screens/shared/edit_profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:convert';
 import '../../../core/constants.dart';
 import '../../providers.dart';
 
@@ -57,27 +59,16 @@ class StafProfileScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Avatar
+              // Avatar dengan Base64 support
               Container(
                 width: 80,
                 height: 80,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF5B500),
                   shape: BoxShape.circle,
                 ),
-                child: auth.currentUser?.profilStaf?.fotoProfil != null
-                    ? ClipOval(
-                        child: Image.network(
-                          auth.currentUser!.profilStaf!.fotoProfil!,
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User");
-                          },
-                        ),
-                      )
-                    : _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User"),
+                child: ClipOval(
+                  child: _buildProfileImage(auth),
+                ),
               ),
               
               const SizedBox(height: 16),
@@ -108,6 +99,49 @@ class StafProfileScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildProfileImage(AuthProvider auth) {
+    final fotoProfil = auth.currentUser?.profilStaf?.fotoProfil;
+    
+    // Jika ada foto profil dan valid Base64
+    if (fotoProfil != null && fotoProfil.isNotEmpty && _isValidBase64(fotoProfil)) {
+      try {
+        return Image.memory(
+          base64Decode(fotoProfil),
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User");
+          },
+        );
+      } catch (e) {
+        debugPrint('Error decoding profile image: $e');
+        return _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User");
+      }
+    }
+    
+    // Fallback ke avatar default
+    return _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User");
+  }
+
+  bool _isValidBase64(String str) {
+    try {
+      if (str.length % 4 != 0) {
+        return false;
+      }
+      
+      final base64RegExp = RegExp(r'^[A-Za-z0-9+/]*={0,2}$');
+      if (!base64RegExp.hasMatch(str)) {
+        return false;
+      }
+      
+      base64Decode(str);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   Widget _buildDefaultAvatar(String name) {
@@ -216,8 +250,17 @@ class StafProfileScreen extends StatelessWidget {
             icon: Icons.edit_outlined,
             title: 'Edit Profile',
             subtitle: 'Ubah informasi personal',
-            onTap: () {
-              // Navigate to edit profile
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+              );
+              
+              // Refresh data jika ada perubahan
+              if (result == true) {
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.refreshUser();
+              }
             },
           ),
           _buildDivider(),

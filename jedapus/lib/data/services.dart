@@ -127,6 +127,142 @@ class AuthService {
     }
   }
 
+  // Method untuk update profile menggunakan Supabase
+  // Method untuk update profile menggunakan Supabase
+Future<models.User?> updateProfile({
+  required String nama,
+  String? jabatan,
+  String? unitKerja,
+  String? jenisKelamin,
+  String? tempatLahir,
+  DateTime? tanggalLahir,
+  String? noTelepon,
+  String? alamat,
+  String? fotoProfil, // Tambahkan parameter ini
+}) async {
+  try {
+    if (kDebugMode) {
+      debugPrint('AuthService: Starting profile update process');
+    }
+
+    // Ambil user aktif dari session
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString(_userKey);
+    if (userJson == null) throw Exception('User not found in session');
+
+    final user = models.User.fromJson(jsonDecode(userJson));
+    final uuidUser = user.uuidUser;
+
+    if (kDebugMode) {
+      debugPrint('AuthService: Updating profile for user: $uuidUser');
+    }
+
+    // Update tabel users (nama)
+    await supabase.from('users').update({
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('uuid_user', uuidUser);
+
+    // Update tabel profil_staf (data detail)
+    final updateData = <String, dynamic>{
+      'nama_lengkap': nama,
+      'jabatan': jabatan,
+      'unit_kerja': unitKerja,
+      'jenis_kelamin': jenisKelamin,
+      'tempat_lahir': tempatLahir,
+      'tanggal_lahir': tanggalLahir?.toIso8601String(),
+      'no_telepon': noTelepon,
+      'alamat': alamat,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    // Tambahkan foto_profil jika ada
+    if (fotoProfil != null) {
+      updateData['foto_profil'] = fotoProfil;
+    }
+
+    await supabase.from('profil_staf').update(updateData).eq('uuid_user', uuidUser);
+
+    // Ambil data user terbaru
+    final response = await supabase
+        .from('users')
+        .select('*, profil_staf(*)')
+        .eq('uuid_user', uuidUser)
+        .maybeSingle();
+
+    if (response != null) {
+      final updatedUser = models.User.fromJson(response);
+      await _saveUserSession(updatedUser);
+      
+      if (kDebugMode) {
+        debugPrint('AuthService: Profile updated successfully for user: ${updatedUser.namaUser}');
+      }
+      
+      return updatedUser;
+    } else {
+      throw Exception('Failed to fetch updated user');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('AuthService: Error updating profile: $e');
+    }
+    throw Exception('Error updating profile: $e');
+  }
+}
+
+// Method khusus untuk update foto profil saja
+Future<models.User?> updateData(String fotoProfil) async {
+  try {
+    if (kDebugMode) {
+      debugPrint('AuthService: Starting foto profil update process');
+    }
+
+    // Ambil user aktif dari session
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString(_userKey);
+    if (userJson == null) throw Exception('User not found in session');
+
+    final user = models.User.fromJson(jsonDecode(userJson));
+    final uuidUser = user.uuidUser;
+
+    if (kDebugMode) {
+      debugPrint('AuthService: Updating foto profil for user: $uuidUser');
+    }
+    
+
+    // Update foto_profil di tabel profil_staf
+    await supabase.from('profil_staf').update({
+      'foto_profil': fotoProfil,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('uuid_user', uuidUser);
+
+    // Ambil data user terbaru
+    final response = await supabase
+        .from('users')
+        .select('*, profil_staf(*)')
+        .eq('uuid_user', uuidUser)
+        .maybeSingle();
+
+    if (response != null) {
+      final updatedUser = models.User.fromJson(response);
+      await _saveUserSession(updatedUser);
+      
+      if (kDebugMode) {
+        debugPrint('AuthService: Foto profil updated successfully');
+      }
+      
+      return updatedUser;
+    } else {
+      throw Exception('Failed to fetch updated user');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('AuthService: Error updating foto profil: $e');
+    }
+    throw Exception('Error updating foto profil: $e');
+  }
+}
+
+
   Future<void> _saveUserSession(models.User user) async {
     try {
       final prefs = await SharedPreferences.getInstance();

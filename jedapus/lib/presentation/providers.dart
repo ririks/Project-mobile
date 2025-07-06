@@ -12,6 +12,9 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _isAuthenticated;
 
+  String? get currentUserFotoProfil => _currentUser?.profilStaf?.fotoProfil;
+  bool get hasProfilePhoto => currentUserFotoProfil != null && currentUserFotoProfil!.isNotEmpty;
+
   AuthProvider() {
     _initializeAuth();
   }
@@ -132,7 +135,102 @@ class AuthProvider extends ChangeNotifier {
       }
     }
   }
+
+// Method untuk update profile tanpa foto
+Future<void> updateProfile({
+    required String nama,
+    String? jabatan,
+    String? unitKerja,
+    String? jenisKelamin,
+    String? tempatLahir,
+    DateTime? tanggalLahir,
+    String? noTelepon,
+    String? alamat,
+    String? fotoProfil,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      if (kDebugMode) {
+        debugPrint('AuthProvider: Updating profile for user: ${_currentUser?.namaUser}');
+      }
+
+      final updatedUser = await AuthService().updateProfile(
+        nama: nama,
+        jabatan: jabatan,
+        unitKerja: unitKerja,
+        jenisKelamin: jenisKelamin,
+        tempatLahir: tempatLahir,
+        tanggalLahir: tanggalLahir,
+        noTelepon: noTelepon,
+        alamat: alamat,
+        fotoProfil: fotoProfil,
+      );
+
+      if (updatedUser != null) {
+        _currentUser = updatedUser;
+        
+        if (kDebugMode) {
+          debugPrint('AuthProvider: Profile updated successfully for user: ${updatedUser.namaUser}');
+        }
+      } else {
+        throw Exception('Gagal memperbarui profil - response null');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuthProvider: Error updating profile: $e');
+      }
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Method khusus untuk update foto profil saja
+Future<void> updateFotoProfil(String fotoProfil) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    if (kDebugMode) {
+      debugPrint('AuthProvider: Updating foto profil for user: ${_currentUser?.namaUser}');
+    }
+
+    // Gunakan method updateData yang baru
+    final updatedUser = await AuthService().updateData(fotoProfil);
+
+    if (updatedUser != null) {
+      _currentUser = updatedUser;
+      
+      if (kDebugMode) {
+        debugPrint('AuthProvider: Foto profil updated successfully');
+      }
+    } else {
+      throw Exception('Gagal memperbarui foto profil - response null');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('AuthProvider: Error updating foto profil: $e');
+    }
+    rethrow;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
 }
+
+
+  // Method untuk mendapatkan foto profil dalam format yang siap digunakan
+  String? getProfilePhotoBase64() {
+    if (hasProfilePhoto) {
+      return currentUserFotoProfil;
+    }
+    return null;
+  }
+}
+   
 
 class DashboardProvider extends ChangeNotifier {
   models.DashboardStats? _stats;

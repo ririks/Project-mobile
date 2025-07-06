@@ -64,6 +64,10 @@ class User {
   // Getter untuk compatibility
   String get namaUser => profilStaf?.namaLengkap ?? 'Unknown User';
   String get email => '$nip@kampus.ac.id';
+
+  User? copyWith({required profilStaf}) {
+    return null;
+  }
 }
 
 class ProfilStaf {
