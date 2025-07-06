@@ -297,6 +297,68 @@ Future<models.User?> updateData(String fotoProfil) async {
       return false;
     }
   }
+
+  Future<bool> checkPassword(String nip, String prevPassword) async {
+  try {
+    if (kDebugMode) {
+      debugPrint('AuthService: Checking previous password for NIP: $nip');
+    }
+
+    final response = await supabase
+        .from('users')
+        .select('uuid_user')
+        .eq('nip', nip)
+        .eq('password', prevPassword)
+        .eq('is_active', true)
+        .maybeSingle();
+
+    final isValid = response != null;
+
+    if (kDebugMode) {
+      debugPrint('AuthService: Previous password valid: $isValid');
+    }
+
+    return isValid;
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('AuthService: Error checking previous password: $e');
+    }
+    return false;
+  }
+}
+
+  Future<bool> changePassword(String nip, String newPassword) async {
+  try {
+    if (kDebugMode) {
+      debugPrint('AuthService: Changing password for NIP: $nip');
+    }
+
+    final response = await supabase
+        .from('users')
+        .update({
+          'password': newPassword,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('nip', nip)
+        .eq('is_active', true)
+        .select()
+        .maybeSingle();
+
+    final isSuccess = response != null;
+
+    if (kDebugMode) {
+      debugPrint('AuthService: Password change success: $isSuccess');
+    }
+
+    return isSuccess;
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('AuthService: Error changing password: $e');
+    }
+    return false;
+  }
+}
+
 }
 
 class CutiService {

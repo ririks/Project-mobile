@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jedapus/presentation/screens/shared/change_password_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers.dart';
@@ -247,8 +248,17 @@ class HRDProfileScreen extends StatelessWidget {
             icon: Icons.security_outlined,
             title: 'Ubah Password',
             subtitle: 'Ganti password akun',
-            onTap: () {
-              // Navigate to change password
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+              );
+              
+              // Refresh data jika ada perubahan
+              if (result == true) {
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.refreshUser();
+              }
             },
           ),
           _buildDivider(),

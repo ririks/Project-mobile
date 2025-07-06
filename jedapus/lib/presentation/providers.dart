@@ -121,6 +121,31 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> checkPassword(String nip, String prevPassword) async {
+    try {
+      // Ganti dengan pemanggilan ke AuthService/Backend Anda
+      return await AuthService().checkPassword(nip, prevPassword);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuthProvider: Error checking password: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Ganti password user
+  Future<bool> changePassword(String nip, String newPassword) async {
+    try {
+      // Ganti dengan pemanggilan ke AuthService/Backend Anda
+      return await AuthService().changePassword(nip, newPassword);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuthProvider: Error changing password: $e');
+      }
+      return false;
+    }
+  }
+
   // Method untuk refresh user data
   Future<void> refreshUser() async {
     try {
