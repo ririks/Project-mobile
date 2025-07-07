@@ -1,6 +1,6 @@
 // Auth
-export 'auth/login_screen.dart';
 export 'auth/splash_screen.dart';
+export 'auth/login_screen.dart';
 
 // Staf Screens
 export 'staf/staf_dashboard.dart';

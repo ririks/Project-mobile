@@ -14,13 +14,29 @@ class JedapusApp extends StatefulWidget {
 }
 
 class _JedapusAppState extends State<JedapusApp> {
+  bool _isInitializing = true;
+  
   @override
   void initState() {
     super.initState();
-    // Pastikan auth provider sudah diinisialisasi
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthProvider>(context, listen: false).checkAuthStatus();
-    });
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Tampilkan splash screen minimal 2 detik
+    await Future.delayed(const Duration(seconds: 2));
+    
+    // Lakukan pengecekan auth status
+    if (mounted) {
+      await Provider.of<AuthProvider>(context, listen: false).checkAuthStatus();
+    }
+    
+    // Selesai inisialisasi
+    if (mounted) {
+      setState(() {
+        _isInitializing = false;
+      });
+    }
   }
 
   @override
@@ -44,39 +60,41 @@ class _JedapusAppState extends State<JedapusApp> {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      home: Consumer<AuthProvider>(
-        builder: (context, auth, _) {
-          if (kDebugMode) {
-            debugPrint('JedapusApp: Building with auth state:');
-            debugPrint('  - isLoading: ${auth.isLoading}');
-            debugPrint('  - isAuthenticated: ${auth.isAuthenticated}');
-            debugPrint('  - currentUser: ${auth.currentUser?.namaUser}');
-            debugPrint('  - userRole: ${auth.currentUser?.role}');
-          }
+      home: _isInitializing 
+          ? const SplashScreen()
+          : Consumer<AuthProvider>(
+              builder: (context, auth, _) {
+                if (kDebugMode) {
+                  debugPrint('JedapusApp: Building with auth state:');
+                  debugPrint('  - isLoading: ${auth.isLoading}');
+                  debugPrint('  - isAuthenticated: ${auth.isAuthenticated}');
+                  debugPrint('  - currentUser: ${auth.currentUser?.namaUser}');
+                  debugPrint('  - userRole: ${auth.currentUser?.role}');
+                }
 
-          // Tampilkan splash screen saat loading
-          if (auth.isLoading) {
-            return const SplashScreen();
-          }
-          
-          // Jika tidak authenticated atau tidak ada user, ke login
-          if (!auth.isAuthenticated || auth.currentUser == null) {
-            return const LoginScreen();
-          }
-          
-          // Navigate berdasarkan role
-          final userRole = auth.currentUser!.role;
-          
-          switch (userRole) {
-            case UserRole.hrd:
-              return const HRDDashboard();
-            case UserRole.rektor:
-              return const RektorDashboard();
-            case UserRole.staf:
-              return const StafDashboard();
-          }
-        },
-      ),
+                // Tampilkan loading jika auth masih dalam proses
+                if (auth.isLoading) {
+                  return const SplashScreen();
+                }
+                
+                // Jika tidak authenticated atau tidak ada user, ke login
+                if (!auth.isAuthenticated || auth.currentUser == null) {
+                  return const LoginScreen();
+                }
+                
+                // Navigate berdasarkan role
+                final userRole = auth.currentUser!.role;
+                
+                switch (userRole) {
+                  case UserRole.hrd:
+                    return const HRDDashboard();
+                  case UserRole.rektor:
+                    return const RektorDashboard();
+                  case UserRole.staf:
+                    return const StafDashboard();
+                }
+              },
+            ),
     );
   }
 }

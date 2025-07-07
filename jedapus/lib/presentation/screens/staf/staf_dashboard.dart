@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:convert';
 import '../../../core/constants.dart';
 import '../../providers.dart';
 import '../screens.dart';
@@ -23,22 +24,31 @@ class _StafDashboardState extends State<StafDashboard> {
 
   void _loadDashboardData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final dashboardProvider = Provider.of<DashboardProvider>(context, listen: false);
+    final dashboardProvider =
+        Provider.of<DashboardProvider>(context, listen: false);
     final cutiProvider = Provider.of<CutiProvider>(context, listen: false);
-    
+
     if (authProvider.currentUser != null) {
       dashboardProvider.loadDashboardData(
         authProvider.currentUser!.uuidUser,
         UserRole.staf,
       );
-      cutiProvider.loadPengajuanCuti(userId: authProvider.currentUser!.uuidUser);
+      cutiProvider.loadPengajuanCuti(
+          userId: authProvider.currentUser!.uuidUser);
     }
+  }
+
+  // Method untuk mengubah tab dari child widget
+  void _changeTab(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final pages = [
-      const StafDashboardHome(),
+      StafDashboardHome(onNavigateToTab: _changeTab), // Pass callback
       const StafPengajuanScreen(),
       const StafRiwayatScreen(),
       const StafProfileScreen(),
@@ -100,7 +110,9 @@ class _StafDashboardState extends State<StafDashboard> {
 }
 
 class StafDashboardHome extends StatefulWidget {
-  const StafDashboardHome({super.key});
+  final Function(int)? onNavigateToTab; // Tambahkan callback parameter
+  
+  const StafDashboardHome({super.key, this.onNavigateToTab});
 
   @override
   State<StafDashboardHome> createState() => _StafDashboardHomeState();
@@ -121,10 +133,12 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
   void _loadData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final cutiProvider = Provider.of<CutiProvider>(context, listen: false);
-    
+
     if (authProvider.currentUser != null) {
-      debugPrint('Loading data for user: ${authProvider.currentUser!.uuidUser}');
-      cutiProvider.loadPengajuanCuti(userId: authProvider.currentUser!.uuidUser);
+      debugPrint(
+          'Loading data for user: ${authProvider.currentUser!.uuidUser}');
+      cutiProvider.loadPengajuanCuti(
+          userId: authProvider.currentUser!.uuidUser);
     }
   }
 
@@ -146,24 +160,24 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
                 children: [
                   // Header Section
                   _buildHeaderSection(),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Cuti Summary Cards
                   _buildCutiSummaryCards(),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Pengajuan Status Summary
                   _buildPengajuanStatusSummary(),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Quick Actions
                   _buildQuickActions(context),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Notifikasi Section
                   _buildNotifikasiSection(),
                 ],
@@ -197,7 +211,7 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
                   builder: (context, auth, _) {
                     final userName = auth.currentUser?.namaUser ?? "User";
                     final words = userName.split(' ');
-                    
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -240,28 +254,60 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
                 width: 56,
                 height: 56,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFF5B500),
                   shape: BoxShape.circle,
                 ),
-                child: auth.currentUser?.profilStaf?.fotoProfil != null
-                    ? ClipOval(
-                        child: Image.network(
-                          auth.currentUser!.profilStaf!.fotoProfil!,
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User");
-                          },
-                        ),
-                      )
-                    : _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User"),
+                child: ClipOval(
+                  child: _buildProfileImage(auth),
+                ),
               );
             },
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildProfileImage(AuthProvider auth) {
+    final fotoProfil = auth.currentUser?.profilStaf?.fotoProfil;
+    
+    // Jika ada foto profil dan valid Base64
+    if (fotoProfil != null && fotoProfil.isNotEmpty && _isValidBase64(fotoProfil)) {
+      try {
+        return Image.memory(
+          base64Decode(fotoProfil),
+          width: 56,
+          height: 56,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User");
+          },
+        );
+      } catch (e) {
+        debugPrint('Error decoding profile image: $e');
+        return _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User");
+      }
+    }
+    
+    // Fallback ke avatar default
+    return _buildDefaultAvatar(auth.currentUser?.namaUser ?? "User");
+  }
+
+  bool _isValidBase64(String str) {
+    try {
+      if (str.length % 4 != 0) {
+        return false;
+      }
+      
+      final base64RegExp = RegExp(r'^[A-Za-z0-9+/]*={0,2}$');
+      if (!base64RegExp.hasMatch(str)) {
+        return false;
+      }
+      
+      base64Decode(str);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   Widget _buildDefaultAvatar(String name) {
@@ -297,8 +343,9 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
         builder: (context, dashboard, _) {
           if (dashboard.isLoading) {
             return Column(
-              children: List.generate(3, (index) => 
-                Padding(
+              children: List.generate(
+                3,
+                (index) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _buildLoadingCard(),
                 ),
@@ -307,11 +354,14 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
           }
 
           final hakCuti = dashboard.stats?.hakCuti ?? [];
-          
-          final cutiTahunan = hakCuti.where((h) => h.jenisCuti == 'Cuti Tahunan').firstOrNull;
-          final cutiSakit = hakCuti.where((h) => h.jenisCuti == 'Cuti Sakit').firstOrNull;
-          final cutiLainnya = hakCuti.where((h) => h.jenisCuti == 'Cuti Lainnya').firstOrNull;
-          
+
+          final cutiTahunan =
+              hakCuti.where((h) => h.jenisCuti == 'Cuti Tahunan').firstOrNull;
+          final cutiSakit =
+              hakCuti.where((h) => h.jenisCuti == 'Cuti Sakit').firstOrNull;
+          final cutiLainnya =
+              hakCuti.where((h) => h.jenisCuti == 'Cuti Lainnya').firstOrNull;
+
           return Column(
             children: [
               _buildCutiCard(
@@ -343,7 +393,7 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
 
   Widget _buildCutiCard(String title, int current, int total, Color color) {
     final progress = total > 0 ? current / total : 0.0;
-    
+
     return Row(
       children: [
         SizedBox(
@@ -358,7 +408,8 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
                   value: 1.0,
                   strokeWidth: 6,
                   backgroundColor: color.withValues(alpha: 0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(color.withValues(alpha: 0.1)),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      color.withValues(alpha: 0.1)),
                 ),
               ),
               SizedBox(
@@ -387,9 +438,7 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
             ],
           ),
         ),
-        
         const SizedBox(width: 16),
-        
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,10 +471,16 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
       builder: (context, cutiProvider, _) {
         // Hitung statistik dari data yang ada
         final totalPengajuan = cutiProvider.pengajuanList.length;
-        final menunggu = cutiProvider.pengajuanList.where((p) => p.statusPengajuan == 'Menunggu').length;
-        final disetujui = cutiProvider.pengajuanList.where((p) => p.statusPengajuan == 'Disetujui').length;
-        final ditolak = cutiProvider.pengajuanList.where((p) => p.statusPengajuan == 'Ditolak').length;
-        
+        final menunggu = cutiProvider.pengajuanList
+            .where((p) => p.statusPengajuan == 'Menunggu')
+            .length;
+        final disetujui = cutiProvider.pengajuanList
+            .where((p) => p.statusPengajuan == 'Disetujui')
+            .length;
+        final ditolak = cutiProvider.pengajuanList
+            .where((p) => p.statusPengajuan == 'Ditolak')
+            .length;
+
         return Wrap(
           spacing: 6,
           runSpacing: 6,
@@ -461,56 +516,58 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
   }
 
   Widget _buildStatusPill(String label, int count, Color color, bool isFilter) {
-  final isSelected = isFilter && _selectedFilter == label;
-  
-  return GestureDetector(
-    onTap: isFilter ? () {
-      setState(() {
-        _selectedFilter = isSelected ? 'Semua' : label;
-      });
-    } : null,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Diperbesar dari 10,6 ke 12,8
-      decoration: BoxDecoration(
-        color: isSelected ? color : color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isSelected ? color : color.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.montserrat(
-              fontSize: 12, // Diperbesar dari 11 ke 12
-              fontWeight: FontWeight.w500,
-              color: isSelected ? Colors.white : color,
-            ),
+    final isSelected = isFilter && _selectedFilter == label;
+
+    return GestureDetector(
+      onTap: isFilter
+          ? () {
+              setState(() {
+                _selectedFilter = isSelected ? 'Semua' : label;
+              });
+            }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color : color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? color : color.withValues(alpha: 0.3),
+            width: 1,
           ),
-          const SizedBox(width: 6), // Diperbesar dari 4 ke 6
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), // Diperbesar dari 6,2 ke 7,3
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.white.withValues(alpha: 0.2) : color,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              count.toString(),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
               style: GoogleFonts.montserrat(
-                fontSize: 11, // Diperbesar dari 10 ke 11
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isSelected ? Colors.white : color,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white.withValues(alpha: 0.2) : color,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                count.toString(),
+                style: GoogleFonts.montserrat(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildQuickActions(BuildContext context) {
     return Column(
@@ -534,7 +591,8 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
                 const Color(0xFF4A5FBF),
                 Colors.white,
                 () {
-                  // Navigate to form pengajuan
+                  // Navigate ke tab Pengajuan (index 1)
+                  widget.onNavigateToTab?.call(1);
                 },
               ),
             ),
@@ -546,7 +604,8 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
                 Colors.white,
                 const Color(0xFF4A5FBF),
                 () {
-                  // Navigate to riwayat
+                  // Navigate ke tab Riwayat (index 2)
+                  widget.onNavigateToTab?.call(2);
                 },
                 hasBorder: true,
               ),
@@ -582,12 +641,10 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
           backgroundColor: backgroundColor,
           foregroundColor: textColor,
           elevation: hasBorder ? 0 : 2,
-          shadowColor: backgroundColor == Colors.white 
-              ? Colors.transparent 
+          shadowColor: backgroundColor == Colors.white
+              ? Colors.transparent
               : backgroundColor.withValues(alpha: 0.3),
-          side: hasBorder 
-              ? BorderSide(color: textColor, width: 1.5) 
-              : null,
+          side: hasBorder ? BorderSide(color: textColor, width: 1.5) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -596,130 +653,132 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
     );
   }
 
- Widget _buildNotifikasiSection() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'Notifikasi',
-        style: GoogleFonts.montserrat(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: const Color(0xFF2D3748),
+  Widget _buildNotifikasiSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Notifikasi',
+          style: GoogleFonts.montserrat(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF2D3748),
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      Consumer<CutiProvider>(
-        builder: (context, cutiProvider, _) {
-          debugPrint('CutiProvider state:');
-          debugPrint('- isLoading: ${cutiProvider.isLoading}');
-          debugPrint('- pengajuanList length: ${cutiProvider.pengajuanList.length}');
-          debugPrint('- error: ${cutiProvider.error}');
+        const SizedBox(height: 16),
+        Consumer<CutiProvider>(
+          builder: (context, cutiProvider, _) {
+            debugPrint('CutiProvider state:');
+            debugPrint('- isLoading: ${cutiProvider.isLoading}');
+            debugPrint(
+                '- pengajuanList length: ${cutiProvider.pengajuanList.length}');
+            debugPrint('- error: ${cutiProvider.error}');
 
-          if (cutiProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+            if (cutiProvider.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
 
-          if (cutiProvider.error != null) {
-            return Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEBEE),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Error: ${cutiProvider.error}',
-                style: GoogleFonts.montserrat(
-                  color: const Color(0xFFE83C3C),
-                  fontSize: 14,
+            if (cutiProvider.error != null) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-            );
-          }
+                child: Text(
+                  'Error: ${cutiProvider.error}',
+                  style: GoogleFonts.montserrat(
+                    color: const Color(0xFFE83C3C),
+                    fontSize: 14,
+                  ),
+                ),
+              );
+            }
 
-          // Filter berdasarkan status yang dipilih
-          List<dynamic> filteredPengajuan = cutiProvider.pengajuanList;
-          
-          if (_selectedFilter != 'Semua' && _selectedFilter != 'Total') {
-            String statusFilter = _selectedFilter;
-            filteredPengajuan = cutiProvider.pengajuanList
-                .where((p) => p.statusPengajuan == statusFilter)
-                .toList();
-          }
+            // Filter berdasarkan status yang dipilih
+            List<dynamic> filteredPengajuan = cutiProvider.pengajuanList;
 
-          // Urutkan berdasarkan tanggal terbaru (created_at descending)
-          filteredPengajuan.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          
-          // Ambil maksimal 5 terbaru untuk notifikasi
-          final recentPengajuan = filteredPengajuan.take(5).toList();
-          
-          if (recentPengajuan.isEmpty) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFAFAFA),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.history_outlined,
-                      size: 48,
-                      color: Color(0xFF718096),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _selectedFilter == 'Semua' 
-                          ? 'Belum ada riwayat pengajuan'
-                          : 'Tidak ada pengajuan dengan status $_selectedFilter',
+            if (_selectedFilter != 'Semua' && _selectedFilter != 'Total') {
+              String statusFilter = _selectedFilter;
+              filteredPengajuan = cutiProvider.pengajuanList
+                  .where((p) => p.statusPengajuan == statusFilter)
+                  .toList();
+            }
+
+            // Urutkan berdasarkan tanggal terbaru (created_at descending)
+            filteredPengajuan
+                .sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+            // Ambil maksimal 5 terbaru untuk notifikasi
+            final recentPengajuan = filteredPengajuan.take(5).toList();
+
+            if (recentPengajuan.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAFA),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.history_outlined,
+                        size: 48,
+                        color: Color(0xFF718096),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _selectedFilter == 'Semua'
+                            ? 'Belum ada riwayat pengajuan'
+                            : 'Tidak ada pengajuan dengan status $_selectedFilter',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 14,
+                          color: const Color(0xFF718096),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                // Tampilkan maksimal 5 riwayat pengajuan
+                ...recentPengajuan.map((pengajuan) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildNotificationCard(pengajuan),
+                  );
+                }).toList(),
+
+                // Tampilkan info jika ada lebih dari 5 pengajuan
+                if (filteredPengajuan.length > 5) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      '+ ${filteredPengajuan.length - 5} pengajuan lainnya',
                       style: GoogleFonts.montserrat(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: const Color(0xFF718096),
+                        fontStyle: FontStyle.italic,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          return Column(
-            children: [
-              // Tampilkan maksimal 5 riwayat pengajuan
-              ...recentPengajuan.map((pengajuan) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildNotificationCard(pengajuan),
-                );
-              }).toList(),
-              
-              // Tampilkan info jika ada lebih dari 5 pengajuan
-              if (filteredPengajuan.length > 5) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    '+ ${filteredPengajuan.length - 5} pengajuan lainnya',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 12,
-                      color: const Color(0xFF718096),
-                      fontStyle: FontStyle.italic,
-                    ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
+                ],
               ],
-            ],
-          );
-        },
-      ),
-    ],
-  );
-}
+            );
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildNotificationCard(pengajuan) {
     Color statusColor;
@@ -760,15 +819,13 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
               ),
             ),
           ),
-          
           const SizedBox(width: 12),
-          
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  pengajuan.alasan.length > 35 
+                  pengajuan.alasan.length > 35
                       ? '${pengajuan.alasan.substring(0, 35)}...'
                       : pengajuan.alasan,
                   style: GoogleFonts.montserrat(
@@ -786,7 +843,8 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
                   ),
                 ),
                 Text(
-                  _formatDateRange(pengajuan.tanggalMulai, pengajuan.tanggalSelesai),
+                  _formatDateRange(
+                      pengajuan.tanggalMulai, pengajuan.tanggalSelesai),
                   style: GoogleFonts.montserrat(
                     fontSize: 12,
                     color: const Color(0xFF718096),
@@ -795,7 +853,6 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
               ],
             ),
           ),
-          
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -867,7 +924,9 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
   }
 
   String _formatDateRange(DateTime start, DateTime end) {
-    if (start.day == end.day && start.month == end.month && start.year == end.year) {
+    if (start.day == end.day &&
+        start.month == end.month &&
+        start.year == end.year) {
       return '${start.day} ${_getMonthName(start.month)} ${start.year}';
     }
     return '${start.day} ${_getMonthName(start.month)} - ${end.day} ${_getMonthName(end.month)} ${end.year}';
@@ -875,8 +934,19 @@ class _StafDashboardHomeState extends State<StafDashboardHome> {
 
   String _getMonthName(int month) {
     const months = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Ags',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des'
     ];
     return months[month];
   }
