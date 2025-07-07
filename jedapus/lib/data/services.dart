@@ -853,6 +853,47 @@ class EmployeeService {
       throw Exception('Failed to get employee stats: $e');
     }
   }
+
+  Future<void> addOrUpdateProfilStaf(String uuidUser, models.ProfilStaf profilStaf) async {
+  // Cek apakah profil sudah ada
+  final existing = await supabase
+    .from('profil_staf')
+    .select('uuid_user')
+    .eq('uuid_user', uuidUser)
+    .maybeSingle();
+
+  final data = {
+    'nama_lengkap': profilStaf.namaLengkap,
+    'jabatan': profilStaf.jabatan,
+    'unit_kerja': profilStaf.unitKerja,
+    'tanggal_masuk': profilStaf.tanggalMasuk?.toIso8601String(),
+    'jenis_kelamin': profilStaf.jenisKelamin,
+    'tempat_lahir': profilStaf.tempatLahir,
+    'tanggal_lahir': profilStaf.tanggalLahir?.toIso8601String(),
+    'alamat': profilStaf.alamat,
+    'no_telepon': profilStaf.noTelepon,
+    'foto_profil': profilStaf.fotoProfil,
+    'updated_at': DateTime.now().toIso8601String(),
+  };
+
+  if (existing != null) {
+    // Jika sudah ada, lakukan update
+    await supabase
+      .from('profil_staf')
+      .update(data)
+      .eq('uuid_user', uuidUser);
+  } else {
+    // Jika belum ada, lakukan insert
+    await supabase
+      .from('profil_staf')
+      .insert({
+        ...data,
+        'uuid_user': uuidUser,
+      });
+  }
+}
+
+
 }
 
 class BackupService {

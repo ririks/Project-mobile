@@ -14,6 +14,19 @@ class HRDKelolaProfileScreen extends StatefulWidget {
 class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedJabatan = 'Semua';
+  String? selectedUuidUser; // Untuk simpan pegawai terpilih di dropdown tambah profil
+
+
+  bool isProfilLengkap(models.ProfilStaf? profil) {
+  if (profil == null) return false;
+  return profil.jabatan != null && profil.jabatan!.isNotEmpty &&
+         profil.unitKerja != null && profil.unitKerja!.isNotEmpty &&
+         profil.tempatLahir != null && profil.tempatLahir!.isNotEmpty &&
+         profil.tanggalLahir != null &&
+         profil.jenisKelamin != null && profil.jenisKelamin!.isNotEmpty &&
+         profil.alamat != null && profil.alamat!.isNotEmpty &&
+         profil.noTelepon != null && profil.noTelepon!.isNotEmpty;
+}
 
   @override
   void initState() {
@@ -342,18 +355,18 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: profil != null ? const Color(0xFF10B981) : const Color(0xFFF5B500),
+                  color: isProfilLengkap(profil) ? const Color(0xFF10B981) : const Color(0xFFF5B500),
                   borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  profil != null ? 'Lengkap' : 'Belum Lengkap',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                  ),
+                  child: Text(
+                    isProfilLengkap(profil) ? 'Lengkap' : 'Belum Lengkap',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           
@@ -487,11 +500,15 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
   }
 
   void _showTambahProfilModal() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildProfilFormModal(),
-    );
-  }
+  setState(() {
+    selectedUuidUser = null; // Reset setiap kali modal tambah dibuka
+  });
+  showDialog(
+    context: context,
+    builder: (context) => _buildProfilFormModal(),
+  );
+}
+
 
   void _showEditProfilModal(models.User employee) {
     showDialog(
@@ -642,21 +659,61 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Save profil logic here
-                        Navigator.pop(context);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                isEdit ? 'Profil berhasil diupdate' : 'Profil berhasil ditambahkan',
-                                style: GoogleFonts.montserrat(),
-                              ),
-                              backgroundColor: const Color(0xFF4A5FBF),
-                            ),
-                          );
-                        }
-                      },
+                      onPressed: () async {
+  final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
+
+  if (namaController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Nama lengkap wajib diisi')),
+    );
+    return;
+  }
+
+  final profilBaru = models.ProfilStaf(
+    uuidProfil: profil?.uuidProfil ?? '',
+    uuidUser: isEdit ? employee!.uuidUser : selectedUuidUser!,
+    namaLengkap: namaController.text,
+    jabatan: jabatanController.text,
+    unitKerja: unitKerjaController.text,
+    tanggalMasuk: selectedTanggalMasuk,
+    jenisKelamin: selectedJenisKelamin,
+    tempatLahir: tempatLahirController.text,
+    tanggalLahir: selectedTanggalLahir,
+    alamat: alamatController.text,
+    noTelepon: noTeleponController.text,
+    fotoProfil: profil?.fotoProfil,
+    createdAt: profil?.createdAt ?? DateTime.now(),
+    updatedAt: DateTime.now(),
+  );
+
+  if (isEdit) {
+    await employeeProvider.addOrUpdateProfilStaf(
+      uuidUser: employee!.uuidUser,
+      profilStaf: profilBaru,
+    );
+  } else {
+    if (selectedUuidUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pilih pegawai terlebih dahulu')),
+      );
+      return;
+    }
+    await employeeProvider.addOrUpdateProfilStaf(
+      uuidUser: selectedUuidUser!,
+      profilStaf: profilBaru,
+    );
+  }
+
+  Navigator.pop(context);
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isEdit ? 'Profil berhasil diupdate' : 'Profil berhasil ditambahkan'),
+        backgroundColor: const Color(0xFF4A5FBF),
+      ),
+    );
+  }
+},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4A5FBF),
                         foregroundColor: Colors.white,
@@ -866,9 +923,9 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
       builder: (context, employeeProvider, _) {
         // Filter employees yang belum punya profil lengkap
         final employeesWithoutProfile = employeeProvider.employees
-            .where((emp) => emp.profilStaf == null)
-            .toList();
-        
+        .where((emp) => !isProfilLengkap(emp.profilStaf))
+        .toList();
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -890,7 +947,7 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
-                  value: null,
+                  value: selectedUuidUser,
                   hint: Text(
                     'Pilih pegawai...',
                     style: GoogleFonts.montserrat(
@@ -900,6 +957,10 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
                   ),
                   isExpanded: true,
                   items: employeesWithoutProfile.map((employee) {
+                    if (selectedUuidUser != null &&
+                    !employeesWithoutProfile.any((e) => e.uuidUser == selectedUuidUser)) {
+                      selectedUuidUser = null;
+                    }
                     return DropdownMenuItem<String>(
                       value: employee.uuidUser,
                       child: Text(
@@ -912,11 +973,13 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
                     );
                   }).toList(),
                   onChanged: (String? value) {
-                    // Handle selection
+                    setState(() {
+                      selectedUuidUser = value;
+                    });
                   },
                 ),
-              ),
             ),
+          ),
           ],
         );
       },

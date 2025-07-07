@@ -485,6 +485,29 @@ class EmployeeProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> addOrUpdateProfilStaf({
+  required String uuidUser,
+  required models.ProfilStaf profilStaf,
+  }) async {
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
+
+  try {
+    await EmployeeService().addOrUpdateProfilStaf(uuidUser, profilStaf);
+    await loadEmployees(); // Refresh data
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  } catch (e) {
+    _error = e.toString();
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+}
+
+
   Future<bool> updateEmployee(models.User user) async {
     _isLoading = true;
     _error = null;
