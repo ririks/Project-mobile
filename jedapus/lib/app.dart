@@ -43,6 +43,7 @@ class _JedapusAppState extends State<JedapusApp> {
           ),
         ),
       ),
+      debugShowCheckedModeBanner: false,
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
           if (kDebugMode) {

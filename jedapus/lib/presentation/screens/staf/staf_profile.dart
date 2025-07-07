@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jedapus/presentation/screens/shared/edit_profile_screen.dart';
 import 'package:jedapus/presentation/screens/shared/change_password_screen.dart';
+import 'package:jedapus/presentation/screens/shared/help_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
@@ -296,8 +297,17 @@ class StafProfileScreen extends StatelessWidget {
             icon: Icons.help_outline,
             title: 'Bantuan',
             subtitle: 'FAQ dan panduan aplikasi',
-            onTap: () {
-              // Navigate to help
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HelpScreen()),
+              );
+              
+              // Refresh data jika ada perubahan
+              if (result == true) {
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.refreshUser();
+              }
             },
           ),
         ],
