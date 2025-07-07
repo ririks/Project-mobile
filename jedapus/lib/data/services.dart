@@ -127,141 +127,128 @@ class AuthService {
     }
   }
 
-  // Method untuk update profile menggunakan Supabase
-  // Method untuk update profile menggunakan Supabase
-Future<models.User?> updateProfile({
-  required String nama,
-  String? jabatan,
-  String? unitKerja,
-  String? jenisKelamin,
-  String? tempatLahir,
-  DateTime? tanggalLahir,
-  String? noTelepon,
-  String? alamat,
-  String? fotoProfil, // Tambahkan parameter ini
-}) async {
-  try {
-    if (kDebugMode) {
-      debugPrint('AuthService: Starting profile update process');
-    }
-
-    // Ambil user aktif dari session
-    final prefs = await SharedPreferences.getInstance();
-    final userJson = prefs.getString(_userKey);
-    if (userJson == null) throw Exception('User not found in session');
-
-    final user = models.User.fromJson(jsonDecode(userJson));
-    final uuidUser = user.uuidUser;
-
-    if (kDebugMode) {
-      debugPrint('AuthService: Updating profile for user: $uuidUser');
-    }
-
-    // Update tabel users (nama)
-    await supabase.from('users').update({
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('uuid_user', uuidUser);
-
-    // Update tabel profil_staf (data detail)
-    final updateData = <String, dynamic>{
-      'nama_lengkap': nama,
-      'jabatan': jabatan,
-      'unit_kerja': unitKerja,
-      'jenis_kelamin': jenisKelamin,
-      'tempat_lahir': tempatLahir,
-      'tanggal_lahir': tanggalLahir?.toIso8601String(),
-      'no_telepon': noTelepon,
-      'alamat': alamat,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-
-    // Tambahkan foto_profil jika ada
-    if (fotoProfil != null) {
-      updateData['foto_profil'] = fotoProfil;
-    }
-
-    await supabase.from('profil_staf').update(updateData).eq('uuid_user', uuidUser);
-
-    // Ambil data user terbaru
-    final response = await supabase
-        .from('users')
-        .select('*, profil_staf(*)')
-        .eq('uuid_user', uuidUser)
-        .maybeSingle();
-
-    if (response != null) {
-      final updatedUser = models.User.fromJson(response);
-      await _saveUserSession(updatedUser);
-      
+  Future<models.User?> updateProfile({
+    required String nama,
+    String? jabatan,
+    String? unitKerja,
+    String? jenisKelamin,
+    String? tempatLahir,
+    DateTime? tanggalLahir,
+    String? noTelepon,
+    String? alamat,
+    String? fotoProfil,
+  }) async {
+    try {
       if (kDebugMode) {
-        debugPrint('AuthService: Profile updated successfully for user: ${updatedUser.namaUser}');
+        debugPrint('AuthService: Starting profile update process');
       }
-      
-      return updatedUser;
-    } else {
-      throw Exception('Failed to fetch updated user');
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      debugPrint('AuthService: Error updating profile: $e');
-    }
-    throw Exception('Error updating profile: $e');
-  }
-}
 
-// Method khusus untuk update foto profil saja
-Future<models.User?> updateData(String fotoProfil) async {
-  try {
-    if (kDebugMode) {
-      debugPrint('AuthService: Starting foto profil update process');
-    }
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString(_userKey);
+      if (userJson == null) throw Exception('User not found in session');
 
-    // Ambil user aktif dari session
-    final prefs = await SharedPreferences.getInstance();
-    final userJson = prefs.getString(_userKey);
-    if (userJson == null) throw Exception('User not found in session');
+      final user = models.User.fromJson(jsonDecode(userJson));
+      final uuidUser = user.uuidUser;
 
-    final user = models.User.fromJson(jsonDecode(userJson));
-    final uuidUser = user.uuidUser;
-
-    if (kDebugMode) {
-      debugPrint('AuthService: Updating foto profil for user: $uuidUser');
-    }
-    
-
-    // Update foto_profil di tabel profil_staf
-    await supabase.from('profil_staf').update({
-      'foto_profil': fotoProfil,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('uuid_user', uuidUser);
-
-    // Ambil data user terbaru
-    final response = await supabase
-        .from('users')
-        .select('*, profil_staf(*)')
-        .eq('uuid_user', uuidUser)
-        .maybeSingle();
-
-    if (response != null) {
-      final updatedUser = models.User.fromJson(response);
-      await _saveUserSession(updatedUser);
-      
       if (kDebugMode) {
-        debugPrint('AuthService: Foto profil updated successfully');
+        debugPrint('AuthService: Updating profile for user: $uuidUser');
       }
-      
-      return updatedUser;
-    } else {
-      throw Exception('Failed to fetch updated user');
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      debugPrint('AuthService: Error updating foto profil: $e');
-    }
-    throw Exception('Error updating foto profil: $e');
-  }
-}
 
+      await supabase.from('users').update({
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('uuid_user', uuidUser);
+
+      final updateData = <String, dynamic>{
+        'nama_lengkap': nama,
+        'jabatan': jabatan,
+        'unit_kerja': unitKerja,
+        'jenis_kelamin': jenisKelamin,
+        'tempat_lahir': tempatLahir,
+        'tanggal_lahir': tanggalLahir?.toIso8601String(),
+        'no_telepon': noTelepon,
+        'alamat': alamat,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (fotoProfil != null) {
+        updateData['foto_profil'] = fotoProfil;
+      }
+
+      await supabase.from('profil_staf').update(updateData).eq('uuid_user', uuidUser);
+
+      final response = await supabase
+          .from('users')
+          .select('*, profil_staf(*)')
+          .eq('uuid_user', uuidUser)
+          .maybeSingle();
+
+      if (response != null) {
+        final updatedUser = models.User.fromJson(response);
+        await _saveUserSession(updatedUser);
+        
+        if (kDebugMode) {
+          debugPrint('AuthService: Profile updated successfully for user: ${updatedUser.namaUser}');
+        }
+        
+        return updatedUser;
+      } else {
+        throw Exception('Failed to fetch updated user');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuthService: Error updating profile: $e');
+      }
+      throw Exception('Error updating profile: $e');
+    }
+  }
+
+  Future<models.User?> updateData(String fotoProfil) async {
+    try {
+      if (kDebugMode) {
+        debugPrint('AuthService: Starting foto profil update process');
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString(_userKey);
+      if (userJson == null) throw Exception('User not found in session');
+
+      final user = models.User.fromJson(jsonDecode(userJson));
+      final uuidUser = user.uuidUser;
+
+      if (kDebugMode) {
+        debugPrint('AuthService: Updating foto profil for user: $uuidUser');
+      }
+
+      await supabase.from('profil_staf').update({
+        'foto_profil': fotoProfil,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('uuid_user', uuidUser);
+
+      final response = await supabase
+          .from('users')
+          .select('*, profil_staf(*)')
+          .eq('uuid_user', uuidUser)
+          .maybeSingle();
+
+      if (response != null) {
+        final updatedUser = models.User.fromJson(response);
+        await _saveUserSession(updatedUser);
+        
+        if (kDebugMode) {
+          debugPrint('AuthService: Foto profil updated successfully');
+        }
+        
+        return updatedUser;
+      } else {
+        throw Exception('Failed to fetch updated user');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuthService: Error updating foto profil: $e');
+      }
+      throw Exception('Error updating foto profil: $e');
+    }
+  }
 
   Future<void> _saveUserSession(models.User user) async {
     try {
@@ -281,7 +268,6 @@ Future<models.User?> updateData(String fotoProfil) async {
     }
   }
 
-  // Validasi token (opsional)
   Future<bool> validateToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -299,66 +285,65 @@ Future<models.User?> updateData(String fotoProfil) async {
   }
 
   Future<bool> checkPassword(String nip, String prevPassword) async {
-  try {
-    if (kDebugMode) {
-      debugPrint('AuthService: Checking previous password for NIP: $nip');
+    try {
+      if (kDebugMode) {
+        debugPrint('AuthService: Checking previous password for NIP: $nip');
+      }
+
+      final response = await supabase
+          .from('users')
+          .select('uuid_user')
+          .eq('nip', nip)
+          .eq('password', prevPassword)
+          .eq('is_active', true)
+          .maybeSingle();
+
+      final isValid = response != null;
+
+      if (kDebugMode) {
+        debugPrint('AuthService: Previous password valid: $isValid');
+      }
+
+      return isValid;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuthService: Error checking previous password: $e');
+      }
+      return false;
     }
-
-    final response = await supabase
-        .from('users')
-        .select('uuid_user')
-        .eq('nip', nip)
-        .eq('password', prevPassword)
-        .eq('is_active', true)
-        .maybeSingle();
-
-    final isValid = response != null;
-
-    if (kDebugMode) {
-      debugPrint('AuthService: Previous password valid: $isValid');
-    }
-
-    return isValid;
-  } catch (e) {
-    if (kDebugMode) {
-      debugPrint('AuthService: Error checking previous password: $e');
-    }
-    return false;
   }
-}
 
   Future<bool> changePassword(String nip, String newPassword) async {
-  try {
-    if (kDebugMode) {
-      debugPrint('AuthService: Changing password for NIP: $nip');
+    try {
+      if (kDebugMode) {
+        debugPrint('AuthService: Changing password for NIP: $nip');
+      }
+
+      final response = await supabase
+          .from('users')
+          .update({
+            'password': newPassword,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('nip', nip)
+          .eq('is_active', true)
+          .select()
+          .maybeSingle();
+
+      final isSuccess = response != null;
+
+      if (kDebugMode) {
+        debugPrint('AuthService: Password change success: $isSuccess');
+      }
+
+      return isSuccess;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuthService: Error changing password: $e');
+      }
+      return false;
     }
-
-    final response = await supabase
-        .from('users')
-        .update({
-          'password': newPassword,
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('nip', nip)
-        .eq('is_active', true)
-        .select()
-        .maybeSingle();
-
-    final isSuccess = response != null;
-
-    if (kDebugMode) {
-      debugPrint('AuthService: Password change success: $isSuccess');
-    }
-
-    return isSuccess;
-  } catch (e) {
-    if (kDebugMode) {
-      debugPrint('AuthService: Error changing password: $e');
-    }
-    return false;
   }
-}
-
 }
 
 class CutiService {
@@ -383,7 +368,6 @@ class CutiService {
         query = query.eq('status_pengajuan', status);
       }
 
-      // Apply ordering dan limit
       PostgrestTransformBuilder finalQuery = query.order('created_at', ascending: false);
       
       if (limit != null) {
@@ -470,7 +454,6 @@ class CutiService {
 
   Future<models.DashboardStats> getDashboardStats(String userId, {UserRole? role}) async {
     try {
-      // Get total pengajuan
       PostgrestFilterBuilder totalQuery = supabase.from('cuti').select('uuid_cuti');
       if (role == UserRole.staf) {
         totalQuery = totalQuery.eq('uuid_user', userId);
@@ -478,7 +461,6 @@ class CutiService {
       final totalResponse = await totalQuery;
       final totalPengajuan = totalResponse.length;
 
-      // Get menunggu approval
       PostgrestFilterBuilder menungguQuery = supabase.from('cuti').select('uuid_cuti').eq('status_pengajuan', 'Menunggu');
       if (role == UserRole.staf) {
         menungguQuery = menungguQuery.eq('uuid_user', userId);
@@ -486,7 +468,6 @@ class CutiService {
       final menungguResponse = await menungguQuery;
       final menungguApproval = menungguResponse.length;
 
-      // Get disetujui
       PostgrestFilterBuilder disetujuiQuery = supabase.from('cuti').select('uuid_cuti').eq('status_pengajuan', 'Disetujui');
       if (role == UserRole.staf) {
         disetujuiQuery = disetujuiQuery.eq('uuid_user', userId);
@@ -494,7 +475,6 @@ class CutiService {
       final disetujuiResponse = await disetujuiQuery;
       final disetujui = disetujuiResponse.length;
 
-      // Get ditolak
       PostgrestFilterBuilder ditolakQuery = supabase.from('cuti').select('uuid_cuti').eq('status_pengajuan', 'Ditolak');
       if (role == UserRole.staf) {
         ditolakQuery = ditolakQuery.eq('uuid_user', userId);
@@ -573,9 +553,15 @@ class EmployeeService {
     }
   }
 
+  // Perbaikan method createEmployee untuk mendukung fitur kelola pegawai
   Future<String> createEmployee(models.User user) async {
     try {
-      final response = await supabase
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Creating employee with NIP: ${user.nip}');
+      }
+
+      // Insert ke tabel users
+      final userResponse = await supabase
           .from('users')
           .insert({
             'nip': user.nip,
@@ -586,14 +572,47 @@ class EmployeeService {
           .select()
           .single();
 
-      return response['uuid_user'].toString();
+      final userId = userResponse['uuid_user'].toString();
+
+      // Insert ke tabel profil_staf jika ada data profil
+      if (user.profilStaf != null) {
+        await supabase.from('profil_staf').insert({
+          'uuid_user': userId,
+          'nama_lengkap': user.profilStaf!.namaLengkap,
+          'jabatan': user.profilStaf!.jabatan,
+          'unit_kerja': user.profilStaf!.unitKerja,
+          'jenis_kelamin': user.profilStaf!.jenisKelamin,
+          'tempat_lahir': user.profilStaf!.tempatLahir,
+          'tanggal_lahir': user.profilStaf!.tanggalLahir?.toIso8601String(),
+          'alamat': user.profilStaf!.alamat,
+          'no_telepon': user.profilStaf!.noTelepon,
+        });
+
+        // Buat default hak cuti
+        await createDefaultHakCuti(userId);
+      }
+
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Employee created successfully with ID: $userId');
+      }
+
+      return userId;
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Error creating employee: $e');
+      }
       throw Exception('Failed to create employee: $e');
     }
   }
 
+  // Perbaikan method updateEmployee untuk mendukung update profil
   Future<void> updateEmployee(models.User user) async {
     try {
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Updating employee: ${user.uuidUser}');
+      }
+
+      // Update tabel users
       await supabase
           .from('users')
           .update({
@@ -602,24 +621,67 @@ class EmployeeService {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('uuid_user', user.uuidUser);
+
+      // Update tabel profil_staf jika ada data profil
+      if (user.profilStaf != null) {
+        await supabase
+            .from('profil_staf')
+            .update({
+              'nama_lengkap': user.profilStaf!.namaLengkap,
+              'jabatan': user.profilStaf!.jabatan,
+              'unit_kerja': user.profilStaf!.unitKerja,
+              'jenis_kelamin': user.profilStaf!.jenisKelamin,
+              'tempat_lahir': user.profilStaf!.tempatLahir,
+              'tanggal_lahir': user.profilStaf!.tanggalLahir?.toIso8601String(),
+              'alamat': user.profilStaf!.alamat,
+              'no_telepon': user.profilStaf!.noTelepon,
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('uuid_user', user.uuidUser);
+      }
+
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Employee updated successfully');
+      }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Error updating employee: $e');
+      }
       throw Exception('Failed to update employee: $e');
     }
   }
 
   Future<void> deleteEmployee(String userId) async {
     try {
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Soft deleting employee: $userId');
+      }
+
       await supabase
           .from('users')
-          .update({'is_active': false})
+          .update({
+            'is_active': false,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('uuid_user', userId);
+
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Employee deleted successfully');
+      }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Error deleting employee: $e');
+      }
       throw Exception('Failed to delete employee: $e');
     }
   }
 
   Future<void> updateHakCuti(String userId, String jenisCuti, int totalCuti, int sisaCuti) async {
     try {
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Updating hak cuti for user: $userId, jenis: $jenisCuti');
+      }
+
       await supabase
           .from('hak_cuti')
           .update({
@@ -628,8 +690,16 @@ class EmployeeService {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('uuid_user', userId)
-          .eq('jenis_cuti', jenisCuti);
+          .eq('jenis_cuti', jenisCuti)
+          .eq('tahun', DateTime.now().year);
+
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Hak cuti updated successfully');
+      }
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('EmployeeService: Error updating hak cuti: $e');
+      }
       throw Exception('Failed to update hak cuti: $e');
     }
   }
@@ -697,6 +767,90 @@ class EmployeeService {
       await supabase.from('hak_cuti').insert(hakCutiData);
     } catch (e) {
       throw Exception('Failed to create default hak cuti: $e');
+    }
+  }
+
+  // Method tambahan untuk mendukung fitur kelola pegawai
+  Future<models.User?> getEmployeeById(String userId) async {
+    try {
+      final response = await supabase
+          .from('users')
+          .select('*, profil_staf(*)')
+          .eq('uuid_user', userId)
+          .eq('is_active', true)
+          .maybeSingle();
+
+      if (response != null) {
+        return models.User.fromJson(response);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get employee by ID: $e');
+    }
+  }
+
+  Future<bool> isNipExists(String nip, {String? excludeUserId}) async {
+    try {
+      PostgrestFilterBuilder query = supabase
+          .from('users')
+          .select('uuid_user')
+          .eq('nip', nip)
+          .eq('is_active', true);
+
+      if (excludeUserId != null) {
+        query = query.neq('uuid_user', excludeUserId);
+      }
+
+      final response = await query.maybeSingle();
+      return response != null;
+    } catch (e) {
+      throw Exception('Failed to check NIP existence: $e');
+    }
+  }
+
+  Future<List<models.User>> getEmployeesByRole(UserRole role) async {
+    try {
+      final response = await supabase
+          .from('users')
+          .select('*, profil_staf(*)')
+          .eq('role', role.toString().split('.').last)
+          .eq('is_active', true)
+          .order('created_at', ascending: false);
+
+      return response.map<models.User>((item) => models.User.fromJson(item)).toList();
+    } catch (e) {
+      throw Exception('Failed to get employees by role: $e');
+    }
+  }
+
+  Future<models.EmployeeStats> getEmployeeStats() async {
+    try {
+      // Get total employees
+      final totalResponse = await supabase
+          .from('users')
+          .select('uuid_user, role, is_active');
+
+      final totalEmployees = totalResponse.length;
+      final activeEmployees = totalResponse.where((e) => e['is_active'] == true).length;
+      final inactiveEmployees = totalEmployees - activeEmployees;
+
+      // Count by role
+      final Map<UserRole, int> employeesByRole = {};
+      for (UserRole role in UserRole.values) {
+        final count = totalResponse.where((e) => 
+          e['role'] == role.toString().split('.').last && e['is_active'] == true
+        ).length;
+        employeesByRole[role] = count;
+      }
+
+      return models.EmployeeStats(
+        totalEmployees: totalEmployees,
+        activeEmployees: activeEmployees,
+        inactiveEmployees: inactiveEmployees,
+        employeesByRole: employeesByRole,
+      );
+    } catch (e) {
+      throw Exception('Failed to get employee stats: $e');
     }
   }
 }
@@ -792,10 +946,8 @@ class BackupService {
 
   Future<void> restoreFromBackup(String backupId) async {
     try {
-      // Simulate restore process
       await Future.delayed(const Duration(seconds: 2));
       
-      // Log restore action
       await supabase
           .from('system_logs')
           .insert({
@@ -810,10 +962,8 @@ class BackupService {
 
   Future<void> downloadBackup(String backupId) async {
     try {
-      // Simulate download process
       await Future.delayed(const Duration(seconds: 1));
       
-      // Log download action
       await supabase
           .from('system_logs')
           .insert({
@@ -858,6 +1008,130 @@ class BackupService {
       );
     } catch (e) {
       throw Exception('Failed to export CSV: $e');
+    }
+  }
+}
+
+// Service tambahan untuk notifikasi
+class NotificationService {
+  Future<List<models.NotificationModel>> getNotifications(String userId) async {
+    try {
+      final response = await supabase
+          .from('notifications')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      return response.map<models.NotificationModel>((item) {
+        return models.NotificationModel(
+          id: item['id'].toString(),
+          userId: item['user_id'].toString(),
+          title: item['title'].toString(),
+          message: item['message'].toString(),
+          type: item['type'].toString(),
+          data: item['data'] as Map<String, dynamic>?,
+          isRead: item['is_read'] ?? false,
+          createdAt: DateTime.parse(item['created_at'].toString()),
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to get notifications: $e');
+    }
+  }
+
+  Future<void> markAsRead(String notificationId) async {
+    try {
+      await supabase
+          .from('notifications')
+          .update({'is_read': true})
+          .eq('id', notificationId);
+    } catch (e) {
+      throw Exception('Failed to mark notification as read: $e');
+    }
+  }
+
+  Future<void> createNotification({
+    required String userId,
+    required String title,
+    required String message,
+    required String type,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      await supabase
+          .from('notifications')
+          .insert({
+            'user_id': userId,
+            'title': title,
+            'message': message,
+            'type': type,
+            'data': data,
+            'is_read': false,
+          });
+    } catch (e) {
+      throw Exception('Failed to create notification: $e');
+    }
+  }
+}
+
+// Service untuk audit log
+class AuditService {
+  Future<void> logAction({
+    required String userId,
+    required String action,
+    required String tableName,
+    String? recordId,
+    Map<String, dynamic>? oldValues,
+    Map<String, dynamic>? newValues,
+  }) async {
+    try {
+      await supabase
+          .from('audit_logs')
+          .insert({
+            'user_id': userId,
+            'action': action,
+            'table_name': tableName,
+            'record_id': recordId,
+            'old_values': oldValues,
+            'new_values': newValues,
+            'created_at': DateTime.now().toIso8601String(),
+          });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuditService: Error logging action: $e');
+      }
+    }
+  }
+
+  Future<List<models.AuditLog>> getAuditLogs({
+    String? userId,
+    String? tableName,
+    int? limit,
+  }) async {
+    try {
+      PostgrestFilterBuilder query = supabase
+          .from('audit_logs')
+          .select();
+
+      if (userId != null) {
+        query = query.eq('user_id', userId);
+      }
+
+      if (tableName != null) {
+        query = query.eq('table_name', tableName);
+      }
+
+      PostgrestTransformBuilder finalQuery = query.order('created_at', ascending: false);
+      
+      if (limit != null) {
+        finalQuery = finalQuery.limit(limit);
+      }
+
+      final response = await finalQuery;
+      
+      return response.map<models.AuditLog>((item) => models.AuditLog.fromJson(item)).toList();
+    } catch (e) {
+      throw Exception('Failed to get audit logs: $e');
     }
   }
 }

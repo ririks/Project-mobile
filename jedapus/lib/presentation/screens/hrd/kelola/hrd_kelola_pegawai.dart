@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../providers.dart';
+import '../../../../data/models.dart' as models;
+import '../../../../core/constants.dart';
+import '../../../../data/services.dart';
 
 class HRDKelolaPegawaiScreen extends StatefulWidget {
   const HRDKelolaPegawaiScreen({super.key});
@@ -158,52 +161,55 @@ class _HRDKelolaPegawaiScreenState extends State<HRDKelolaPegawaiScreen> {
       builder: (context, employeeProvider, _) {
         if (employeeProvider.isLoading) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(
+              color: Color(0xFF4A5FBF),
+            ),
           );
         }
 
-        // Mock data untuk demo - ganti dengan real data dari provider
-        final pegawaiList = [
-          {
-            'uuid': '1',
-            'nama': 'Dr. Ahmad Susanto, M.Kom',
-            'nip': '12345678',
-            'jabatan': 'Dosen Tetap',
-            'role': 'Staf',
-            'isActive': true,
-          },
-          {
-            'uuid': '2',
-            'nama': 'Dewi Kartika, S.H, M.M',
-            'nip': '87654321',
-            'jabatan': 'Kepala HRD',
-            'role': 'Admin',
-            'isActive': true,
-          },
-          {
-            'uuid': '3',
-            'nama': 'Prof. Dr. Ir. Budi Santoso, M.Sc, Ph.D',
-            'nip': '11111111',
-            'jabatan': 'Rektor',
-            'role': 'Rektor',
-            'isActive': true,
-          },
-        ];
+        if (employeeProvider.error != null) {
+          return Container(
+            padding: const EdgeInsets.all(48),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.error, size: 64, color: Color(0xFFE83C3C)),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${employeeProvider.error}',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 16,
+                      color: const Color(0xFFE83C3C),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadPegawai,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A5FBF),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(
+                      'Coba Lagi',
+                      style: GoogleFonts.montserrat(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-        // Filter berdasarkan search dan role
-        var filteredList = pegawaiList.where((pegawai) {
-          final nama = pegawai['nama']?.toString() ?? '';
-          final nip = pegawai['nip']?.toString() ?? '';
-          final searchText = _searchController.text.toLowerCase();
-          
-          final matchesSearch = _searchController.text.isEmpty ||
-              nama.toLowerCase().contains(searchText) ||
-              nip.toLowerCase().contains(searchText);
-          
-          final matchesRole = _selectedRole == 'Semua' || pegawai['role'] == _selectedRole;
-          
-          return matchesSearch && matchesRole;
-        }).toList();
+        // Gunakan real data dari provider dengan filtering
+        final filteredList = employeeProvider.getFilteredEmployees(
+          searchQuery: _searchController.text,
+          roleFilter: _selectedRole,
+        );
 
         if (filteredList.isEmpty) {
           return Container(
@@ -240,7 +246,7 @@ class _HRDKelolaPegawaiScreenState extends State<HRDKelolaPegawaiScreen> {
         return ListView.builder(
           itemCount: filteredList.length,
           itemBuilder: (context, index) {
-            final pegawai = filteredList[index];
+            final pegawai = _convertUserToMap(filteredList[index]);
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: _buildPegawaiCard(pegawai),
@@ -249,6 +255,33 @@ class _HRDKelolaPegawaiScreenState extends State<HRDKelolaPegawaiScreen> {
         );
       },
     );
+  }
+
+  // Helper function untuk konversi User model ke Map
+  Map<String, dynamic> _convertUserToMap(models.User user) {
+    return {
+      'uuid': user.uuidUser,
+      'nama': user.namaUser,
+      'nip': user.nip,
+      'jabatan': user.profilStaf?.jabatan ?? 'Tidak ada jabatan',
+      'role': user.role.label,
+      'isActive': user.isActive,
+      'created_at': user.createdAt.toIso8601String(),
+      'password': user.password,
+      'profil_uuid': user.profilStaf?.uuidProfil ?? '',
+    };
+  }
+
+  // Helper function untuk konversi role string ke UserRole
+  UserRole _getRoleFromString(String role) {
+    switch (role) {
+      case 'Admin':
+        return UserRole.hrd;
+      case 'Rektor':
+        return UserRole.rektor;
+      default:
+        return UserRole.staf;
+    }
   }
 
   Widget _buildPegawaiCard(Map<String, dynamic> pegawai) {
@@ -569,17 +602,115 @@ class _HRDKelolaPegawaiScreenState extends State<HRDKelolaPegawaiScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Save pegawai
-                        Navigator.pop(context);
-                        if (mounted) {
+                      onPressed: () async {
+                        // Validasi input
+                        if (namaController.text.isEmpty || 
+                            nipController.text.isEmpty || 
+                            jabatanController.text.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                isEdit ? 'Pegawai berhasil diupdate' : 'Pegawai berhasil ditambahkan',
+                                'Semua field wajib diisi',
                                 style: GoogleFonts.montserrat(),
                               ),
-                              backgroundColor: const Color(0xFF4A5FBF),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        // Validasi password untuk pegawai baru
+                        if (!isEdit && passwordController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Password wajib diisi untuk pegawai baru',
+                                style: GoogleFonts.montserrat(),
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        try {
+                          final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
+                          
+                          if (isEdit) {
+                            // Update pegawai existing
+                            final updatedUser = models.User(
+                              uuidUser: pegawai!['uuid'],
+                              nip: nipController.text,
+                              password: pegawai!['password'] ?? 'default123',
+                              role: _getRoleFromString(selectedRole),
+                              isActive: true,
+                              createdAt: DateTime.parse(pegawai!['created_at'] ?? DateTime.now().toIso8601String()),
+                              updatedAt: DateTime.now(),
+                              profilStaf: models.ProfilStaf(
+                                uuidProfil: pegawai!['profil_uuid'] ?? '',
+                                uuidUser: pegawai!['uuid'],
+                                namaLengkap: namaController.text,
+                                jabatan: jabatanController.text,
+                                createdAt: DateTime.parse(pegawai!['created_at'] ?? DateTime.now().toIso8601String()),
+                                updatedAt: DateTime.now(),
+                              ),
+                            );
+                            
+                            final success = await employeeProvider.updateEmployee(updatedUser);
+                            if (success) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Pegawai berhasil diupdate',
+                                    style: GoogleFonts.montserrat(),
+                                  ),
+                                  backgroundColor: const Color(0xFF4A5FBF),
+                                ),
+                              );
+                            }
+                          } else {
+                            // Tambah pegawai baru
+                            final newUser = models.User(
+                              uuidUser: '', // Will be generated by database
+                              nip: nipController.text,
+                              password: passwordController.text,
+                              role: _getRoleFromString(selectedRole),
+                              isActive: true,
+                              createdAt: DateTime.now(),
+                              updatedAt: DateTime.now(),
+                              profilStaf: models.ProfilStaf(
+                                uuidProfil: '',
+                                uuidUser: '',
+                                namaLengkap: namaController.text,
+                                jabatan: jabatanController.text,
+                                createdAt: DateTime.now(),
+                                updatedAt: DateTime.now(),
+                              ),
+                            );
+                            
+                            final success = await employeeProvider.createEmployee(newUser);
+                            if (success) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Pegawai berhasil ditambahkan',
+                                    style: GoogleFonts.montserrat(),
+                                  ),
+                                  backgroundColor: const Color(0xFF4A5FBF),
+                                ),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Error: ${e.toString()}',
+                                style: GoogleFonts.montserrat(),
+                              ),
+                              backgroundColor: Colors.red,
                             ),
                           );
                         }
@@ -653,96 +784,382 @@ class _HRDKelolaPegawaiScreenState extends State<HRDKelolaPegawaiScreen> {
     );
   }
 
+  // PERBAIKAN UTAMA: Modal Hak Cuti dengan Data Real dari Database
   void _showHakCutiModal(Map<String, dynamic> pegawai) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          constraints: const BoxConstraints(maxHeight: 500),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF4A5FBF),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Hak Cuti - ${pegawai['nama']}',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 600),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF4A5FBF),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Hak Cuti - ${pegawai['nama']}',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Content dengan FutureBuilder untuk load data real
+                  Expanded(
+                    child: FutureBuilder<List<models.HakCuti>>(
+                      future: CutiService().getHakCuti(pegawai['uuid']),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF4A5FBF),
+                            ),
+                          );
+                        }
+                        
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error, size: 48, color: Color(0xFFE83C3C)),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Error loading data: ${snapshot.error}',
+                                  style: GoogleFonts.montserrat(
+                                    color: const Color(0xFFE83C3C),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        final hakCutiList = snapshot.data ?? [];
+                        
+                        // Jika tidak ada data, tampilkan pesan dan tombol buat default
+                        if (hakCutiList.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.event_busy, size: 48, color: Color(0xFF718096)),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Belum ada data hak cuti',
+                                  style: GoogleFonts.montserrat(
+                                    color: const Color(0xFF718096),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    try {
+                                      await EmployeeService().createDefaultHakCuti(pegawai['uuid']);
+                                      setModalState(() {}); // Refresh modal
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Default hak cuti berhasil dibuat',
+                                            style: GoogleFonts.montserrat(),
+                                          ),
+                                          backgroundColor: const Color(0xFF4A5FBF),
+                                        ),
+                                      );
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Error: ${e.toString()}'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF4A5FBF),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: Text(
+                                    'Buat Default Hak Cuti',
+                                    style: GoogleFonts.montserrat(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        return Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            children: hakCutiList.map((hakCuti) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildHakCutiRowWithData(
+                                  hakCuti, 
+                                  pegawai['uuid'],
+                                  () => setModalState(() {}), // Callback untuk refresh
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  
+                  // Actions
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4A5FBF),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Tutup',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _buildHakCutiRow('Cuti Tahunan', 8, 24),
-                      const SizedBox(height: 16),
-                      _buildHakCutiRow('Cuti Sakit', 6, 12),
-                      const SizedBox(height: 16),
-                      _buildHakCutiRow('Cuti Lainnya', 17, 18),
-                    ],
                   ),
-                ),
+                ],
               ),
-              
-              // Actions
-              Container(
-                padding: const EdgeInsets.all(20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A5FBF),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'Tutup',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHakCutiRow(String jenisCuti, int sisa, int total) {
+  // Widget untuk menampilkan hak cuti dengan data real
+  Widget _buildHakCutiRowWithData(models.HakCuti hakCuti, String userId, VoidCallback onRefresh) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hakCuti.jenisCuti,
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF2D3748),
+                  ),
+                ),
+                Text(
+                  'Sisa: ${hakCuti.sisaCuti} dari ${hakCuti.totalCuti} hari',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 12,
+                    color: const Color(0xFF718096),
+                  ),
+                ),
+                Text(
+                  'Tahun: ${hakCuti.tahun}',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 10,
+                    color: const Color(0xFF718096),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _showEditHakCutiModalWithData(hakCuti, onRefresh),
+            icon: const Icon(
+              Icons.edit,
+              color: Color(0xFF4A5FBF),
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Modal edit hak cuti dengan data real dan validasi lengkap
+  void _showEditHakCutiModalWithData(models.HakCuti hakCuti, VoidCallback onRefresh) {
+    final totalController = TextEditingController(text: hakCuti.totalCuti.toString());
+    final sisaController = TextEditingController(text: hakCuti.sisaCuti.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Edit ${hakCuti.jenisCuti}',
+          style: GoogleFonts.montserrat(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildFormField('Total Cuti', totalController),
+            const SizedBox(height: 16),
+            _buildFormField('Sisa Cuti', sisaController),
+            const SizedBox(height: 8),
+            Text(
+              'Tahun: ${hakCuti.tahun}',
+              style: GoogleFonts.montserrat(
+                fontSize: 12,
+                color: const Color(0xFF718096),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.montserrat(
+                color: const Color(0xFF718096),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Validasi input
+              if (totalController.text.isEmpty || sisaController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Semua field wajib diisi',
+                      style: GoogleFonts.montserrat(),
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                final totalCuti = int.parse(totalController.text);
+                final sisaCuti = int.parse(sisaController.text);
+
+                // Validasi logika bisnis
+                if (sisaCuti > totalCuti) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Sisa cuti tidak boleh lebih dari total cuti',
+                        style: GoogleFonts.montserrat(),
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                if (totalCuti < 0 || sisaCuti < 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Nilai tidak boleh negatif',
+                        style: GoogleFonts.montserrat(),
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
+                final success = await employeeProvider.updateHakCuti(
+                  userId: hakCuti.uuidUser,
+                  jenisCuti: hakCuti.jenisCuti,
+                  totalCuti: totalCuti,
+                  sisaCuti: sisaCuti,
+                );
+                
+                Navigator.pop(context);
+                
+                if (success) {
+                  onRefresh(); // Refresh modal hak cuti
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Hak cuti berhasil diupdate',
+                        style: GoogleFonts.montserrat(),
+                      ),
+                      backgroundColor: const Color(0xFF4A5FBF),
+                    ),
+                  );
+                }
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Error: ${e.toString()}',
+                      style: GoogleFonts.montserrat(),
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4A5FBF),
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Simpan',
+              style: GoogleFonts.montserrat(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget legacy untuk backward compatibility (tidak digunakan lagi)
+  Widget _buildHakCutiRow(String jenisCuti, int sisa, int total, String userId) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -774,13 +1191,97 @@ class _HRDKelolaPegawaiScreenState extends State<HRDKelolaPegawaiScreen> {
             ),
           ),
           IconButton(
-            onPressed: () {
-              // Edit hak cuti
-            },
+            onPressed: () => _showEditHakCutiModal(userId, jenisCuti, sisa, total),
             icon: const Icon(
               Icons.edit,
               color: Color(0xFF4A5FBF),
               size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Method legacy untuk backward compatibility (tidak digunakan lagi)
+  void _showEditHakCutiModal(String userId, String jenisCuti, int currentSisa, int currentTotal) {
+    final totalController = TextEditingController(text: currentTotal.toString());
+    final sisaController = TextEditingController(text: currentSisa.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Edit $jenisCuti',
+          style: GoogleFonts.montserrat(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildFormField('Total Cuti', totalController),
+            const SizedBox(height: 16),
+            _buildFormField('Sisa Cuti', sisaController),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.montserrat(
+                color: const Color(0xFF718096),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
+                final success = await employeeProvider.updateHakCuti(
+                  userId: userId,
+                  jenisCuti: jenisCuti,
+                  totalCuti: int.parse(totalController.text),
+                  sisaCuti: int.parse(sisaController.text),
+                );
+                
+                Navigator.pop(context);
+                
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Hak cuti berhasil diupdate',
+                        style: GoogleFonts.montserrat(),
+                      ),
+                      backgroundColor: const Color(0xFF4A5FBF),
+                    ),
+                  );
+                }
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Error: ${e.toString()}',
+                      style: GoogleFonts.montserrat(),
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4A5FBF),
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Simpan',
+              style: GoogleFonts.montserrat(),
             ),
           ),
         ],
@@ -816,16 +1317,33 @@ class _HRDKelolaPegawaiScreenState extends State<HRDKelolaPegawaiScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              if (mounted) {
+            onPressed: () async {
+              try {
+                final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
+                final success = await employeeProvider.deleteEmployee(pegawai['uuid']);
+                
+                Navigator.pop(context);
+                
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Pegawai berhasil dihapus',
+                        style: GoogleFonts.montserrat(),
+                      ),
+                      backgroundColor: const Color(0xFFE83C3C),
+                    ),
+                  );
+                }
+              } catch (e) {
+                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Pegawai berhasil dihapus',
+                      'Error: ${e.toString()}',
                       style: GoogleFonts.montserrat(),
                     ),
-                    backgroundColor: const Color(0xFFE83C3C),
+                    backgroundColor: Colors.red,
                   ),
                 );
               }

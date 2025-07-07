@@ -65,8 +65,27 @@ class User {
   String get namaUser => profilStaf?.namaLengkap ?? 'Unknown User';
   String get email => '$nip@kampus.ac.id';
 
-  User? copyWith({required profilStaf}) {
-    return null;
+  // Perbaikan method copyWith
+  User copyWith({
+    String? uuidUser,
+    String? nip,
+    String? password,
+    UserRole? role,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    ProfilStaf? profilStaf,
+  }) {
+    return User(
+      uuidUser: uuidUser ?? this.uuidUser,
+      nip: nip ?? this.nip,
+      password: password ?? this.password,
+      role: role ?? this.role,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      profilStaf: profilStaf ?? this.profilStaf,
+    );
   }
 }
 
@@ -123,6 +142,61 @@ class ProfilStaf {
       fotoProfil: json['foto_profil']?.toString(),
       createdAt: DateTime.parse(json['created_at'].toString()),
       updatedAt: DateTime.parse(json['updated_at'].toString()),
+    );
+  }
+
+  // Penambahan method toJson
+  Map<String, dynamic> toJson() {
+    return {
+      'uuid_profil': uuidProfil,
+      'uuid_user': uuidUser,
+      'nama_lengkap': namaLengkap,
+      'jabatan': jabatan,
+      'unit_kerja': unitKerja,
+      'tanggal_masuk': tanggalMasuk?.toIso8601String(),
+      'jenis_kelamin': jenisKelamin,
+      'tempat_lahir': tempatLahir,
+      'tanggal_lahir': tanggalLahir?.toIso8601String(),
+      'alamat': alamat,
+      'no_telepon': noTelepon,
+      'foto_profil': fotoProfil,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  // Penambahan method copyWith
+  ProfilStaf copyWith({
+    String? uuidProfil,
+    String? uuidUser,
+    String? namaLengkap,
+    String? jabatan,
+    String? unitKerja,
+    DateTime? tanggalMasuk,
+    String? jenisKelamin,
+    String? tempatLahir,
+    DateTime? tanggalLahir,
+    String? alamat,
+    String? noTelepon,
+    String? fotoProfil,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return ProfilStaf(
+      uuidProfil: uuidProfil ?? this.uuidProfil,
+      uuidUser: uuidUser ?? this.uuidUser,
+      namaLengkap: namaLengkap ?? this.namaLengkap,
+      jabatan: jabatan ?? this.jabatan,
+      unitKerja: unitKerja ?? this.unitKerja,
+      tanggalMasuk: tanggalMasuk ?? this.tanggalMasuk,
+      jenisKelamin: jenisKelamin ?? this.jenisKelamin,
+      tempatLahir: tempatLahir ?? this.tempatLahir,
+      tanggalLahir: tanggalLahir ?? this.tanggalLahir,
+      alamat: alamat ?? this.alamat,
+      noTelepon: noTelepon ?? this.noTelepon,
+      fotoProfil: fotoProfil ?? this.fotoProfil,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
@@ -186,6 +260,26 @@ class PengajuanCuti {
     );
   }
 
+  // Penambahan method toJson
+  Map<String, dynamic> toJson() {
+    return {
+      'uuid_cuti': uuidCuti,
+      'uuid_user': uuidUser,
+      'jenis_cuti': jenisCuti,
+      'tanggal_mulai': tanggalMulai.toIso8601String(),
+      'tanggal_selesai': tanggalSelesai.toIso8601String(),
+      'jumlah_hari': jumlahHari,
+      'alasan': alasan,
+      'status_pengajuan': statusPengajuan,
+      'uuid_approver': uuidApprover,
+      'keputusan_rektor': keputusanRektor,
+      'tanggal_keputusan': tanggalKeputusan?.toIso8601String(),
+      'catatan_rektor': catatanRektor,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
   StatusCuti get status {
     switch (statusPengajuan.toLowerCase()) {
       case 'disetujui':
@@ -241,6 +335,20 @@ class HakCuti {
       createdAt: DateTime.parse(json['created_at'].toString()),
       updatedAt: DateTime.parse(json['updated_at'].toString()),
     );
+  }
+
+  // Penambahan method toJson
+  Map<String, dynamic> toJson() {
+    return {
+      'uuid_hak': uuidHak,
+      'uuid_user': uuidUser,
+      'jenis_cuti': jenisCuti,
+      'total_cuti': totalCuti,
+      'sisa_cuti': sisaCuti,
+      'tahun': tahun,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
   }
 }
 
@@ -453,6 +561,242 @@ class ExportFile {
       'filename': filename,
       'path': path,
       'file_size': fileSize,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+}
+
+// Model Tambahan untuk Kelola Pegawai
+class EmployeeFilter {
+  final String? searchQuery;
+  final UserRole? roleFilter;
+  final bool? isActiveFilter;
+  final String? unitKerjaFilter;
+
+  EmployeeFilter({
+    this.searchQuery,
+    this.roleFilter,
+    this.isActiveFilter,
+    this.unitKerjaFilter,
+  });
+}
+
+class EmployeeStats {
+  final int totalEmployees;
+  final int activeEmployees;
+  final int inactiveEmployees;
+  final Map<UserRole, int> employeesByRole;
+
+  EmployeeStats({
+    required this.totalEmployees,
+    required this.activeEmployees,
+    required this.inactiveEmployees,
+    required this.employeesByRole,
+  });
+}
+
+class CreateEmployeeRequest {
+  final String nip;
+  final String password;
+  final UserRole role;
+  final String namaLengkap;
+  final String? jabatan;
+  final String? unitKerja;
+  final String? jenisKelamin;
+  final String? tempatLahir;
+  final DateTime? tanggalLahir;
+  final String? alamat;
+  final String? noTelepon;
+
+  CreateEmployeeRequest({
+    required this.nip,
+    required this.password,
+    required this.role,
+    required this.namaLengkap,
+    this.jabatan,
+    this.unitKerja,
+    this.jenisKelamin,
+    this.tempatLahir,
+    this.tanggalLahir,
+    this.alamat,
+    this.noTelepon,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'nip': nip,
+      'password': password,
+      'role': role.toString().split('.').last,
+      'nama_lengkap': namaLengkap,
+      'jabatan': jabatan,
+      'unit_kerja': unitKerja,
+      'jenis_kelamin': jenisKelamin,
+      'tempat_lahir': tempatLahir,
+      'tanggal_lahir': tanggalLahir?.toIso8601String(),
+      'alamat': alamat,
+      'no_telepon': noTelepon,
+    };
+  }
+}
+
+// Model untuk Validasi
+class ValidationResult {
+  final bool isValid;
+  final List<String> errors;
+
+  ValidationResult({
+    required this.isValid,
+    required this.errors,
+  });
+
+  factory ValidationResult.valid() {
+    return ValidationResult(isValid: true, errors: []);
+  }
+
+  factory ValidationResult.invalid(List<String> errors) {
+    return ValidationResult(isValid: false, errors: errors);
+  }
+}
+
+class EmployeeValidator {
+  static ValidationResult validateCreateEmployee(CreateEmployeeRequest request) {
+    List<String> errors = [];
+
+    // Validasi NIP
+    if (request.nip.isEmpty) {
+      errors.add('NIP tidak boleh kosong');
+    } else if (request.nip.length < 8) {
+      errors.add('NIP minimal 8 karakter');
+    }
+
+    // Validasi Password
+    if (request.password.isEmpty) {
+      errors.add('Password tidak boleh kosong');
+    } else if (request.password.length < 6) {
+      errors.add('Password minimal 6 karakter');
+    }
+
+    // Validasi Nama
+    if (request.namaLengkap.isEmpty) {
+      errors.add('Nama lengkap tidak boleh kosong');
+    }
+
+    return errors.isEmpty 
+        ? ValidationResult.valid() 
+        : ValidationResult.invalid(errors);
+  }
+
+  static ValidationResult validateUpdateEmployee(User user) {
+    List<String> errors = [];
+
+    if (user.nip.isEmpty) {
+      errors.add('NIP tidak boleh kosong');
+    }
+
+    if (user.profilStaf?.namaLengkap.isEmpty ?? true) {
+      errors.add('Nama lengkap tidak boleh kosong');
+    }
+
+    return errors.isEmpty 
+        ? ValidationResult.valid() 
+        : ValidationResult.invalid(errors);
+  }
+}
+
+// Model untuk Response API
+class ApiResponse<T> {
+  final bool success;
+  final String message;
+  final T? data;
+  final List<String>? errors;
+
+  ApiResponse({
+    required this.success,
+    required this.message,
+    this.data,
+    this.errors,
+  });
+
+  factory ApiResponse.success(T data, {String message = 'Success'}) {
+    return ApiResponse(
+      success: true,
+      message: message,
+      data: data,
+    );
+  }
+
+  factory ApiResponse.error(String message, {List<String>? errors}) {
+    return ApiResponse(
+      success: false,
+      message: message,
+      errors: errors,
+    );
+  }
+}
+
+class PaginatedResponse<T> {
+  final List<T> data;
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final int itemsPerPage;
+
+  PaginatedResponse({
+    required this.data,
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.itemsPerPage,
+  });
+
+  bool get hasNextPage => currentPage < totalPages;
+  bool get hasPreviousPage => currentPage > 1;
+}
+
+// Model untuk Audit Log
+class AuditLog {
+  final String id;
+  final String userId;
+  final String action;
+  final String tableName;
+  final String? recordId;
+  final Map<String, dynamic>? oldValues;
+  final Map<String, dynamic>? newValues;
+  final DateTime createdAt;
+
+  AuditLog({
+    required this.id,
+    required this.userId,
+    required this.action,
+    required this.tableName,
+    this.recordId,
+    this.oldValues,
+    this.newValues,
+    required this.createdAt,
+  });
+
+  factory AuditLog.fromJson(Map<String, dynamic> json) {
+    return AuditLog(
+      id: json['id'].toString(),
+      userId: json['user_id'].toString(),
+      action: json['action'].toString(),
+      tableName: json['table_name'].toString(),
+      recordId: json['record_id']?.toString(),
+      oldValues: json['old_values'] as Map<String, dynamic>?,
+      newValues: json['new_values'] as Map<String, dynamic>?,
+      createdAt: DateTime.parse(json['created_at'].toString()),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'action': action,
+      'table_name': tableName,
+      'record_id': recordId,
+      'old_values': oldValues,
+      'new_values': newValues,
       'created_at': createdAt.toIso8601String(),
     };
   }

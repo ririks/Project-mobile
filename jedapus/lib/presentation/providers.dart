@@ -123,7 +123,6 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> checkPassword(String nip, String prevPassword) async {
     try {
-      // Ganti dengan pemanggilan ke AuthService/Backend Anda
       return await AuthService().checkPassword(nip, prevPassword);
     } catch (e) {
       if (kDebugMode) {
@@ -133,10 +132,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Ganti password user
   Future<bool> changePassword(String nip, String newPassword) async {
     try {
-      // Ganti dengan pemanggilan ke AuthService/Backend Anda
       return await AuthService().changePassword(nip, newPassword);
     } catch (e) {
       if (kDebugMode) {
@@ -161,8 +158,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-// Method untuk update profile tanpa foto
-Future<void> updateProfile({
+  // Method untuk update profile tanpa foto
+  Future<void> updateProfile({
     required String nama,
     String? jabatan,
     String? unitKerja,
@@ -214,38 +211,36 @@ Future<void> updateProfile({
   }
 
   // Method khusus untuk update foto profil saja
-Future<void> updateFotoProfil(String fotoProfil) async {
-  _isLoading = true;
-  notifyListeners();
-
-  try {
-    if (kDebugMode) {
-      debugPrint('AuthProvider: Updating foto profil for user: ${_currentUser?.namaUser}');
-    }
-
-    // Gunakan method updateData yang baru
-    final updatedUser = await AuthService().updateData(fotoProfil);
-
-    if (updatedUser != null) {
-      _currentUser = updatedUser;
-      
-      if (kDebugMode) {
-        debugPrint('AuthProvider: Foto profil updated successfully');
-      }
-    } else {
-      throw Exception('Gagal memperbarui foto profil - response null');
-    }
-  } catch (e) {
-    if (kDebugMode) {
-      debugPrint('AuthProvider: Error updating foto profil: $e');
-    }
-    rethrow;
-  } finally {
-    _isLoading = false;
+  Future<void> updateFotoProfil(String fotoProfil) async {
+    _isLoading = true;
     notifyListeners();
-  }
-}
 
+    try {
+      if (kDebugMode) {
+        debugPrint('AuthProvider: Updating foto profil for user: ${_currentUser?.namaUser}');
+      }
+
+      final updatedUser = await AuthService().updateData(fotoProfil);
+
+      if (updatedUser != null) {
+        _currentUser = updatedUser;
+        
+        if (kDebugMode) {
+          debugPrint('AuthProvider: Foto profil updated successfully');
+        }
+      } else {
+        throw Exception('Gagal memperbarui foto profil - response null');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuthProvider: Error updating foto profil: $e');
+      }
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   // Method untuk mendapatkan foto profil dalam format yang siap digunakan
   String? getProfilePhotoBase64() {
@@ -255,7 +250,6 @@ Future<void> updateFotoProfil(String fotoProfil) async {
     return null;
   }
 }
-   
 
 class DashboardProvider extends ChangeNotifier {
   models.DashboardStats? _stats;
@@ -289,6 +283,12 @@ class DashboardProvider extends ChangeNotifier {
 
   void refresh(String userId, UserRole role) {
     loadDashboardData(userId, role);
+  }
+
+  // Method untuk clear error
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 }
 
@@ -399,16 +399,32 @@ class CutiProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // Method untuk clear error
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // Method untuk filter pengajuan berdasarkan status
+  List<models.PengajuanCuti> getFilteredPengajuan(String? statusFilter) {
+    if (statusFilter == null || statusFilter == 'Semua') {
+      return _pengajuanList;
+    }
+    return _pengajuanList.where((p) => p.statusPengajuan == statusFilter).toList();
+  }
 }
 
 class EmployeeProvider extends ChangeNotifier {
   List<models.User> _employees = [];
   bool _isLoading = false;
   String? _error;
+  models.EmployeeStats? _stats;
 
   List<models.User> get employees => _employees;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  models.EmployeeStats? get stats => _stats;
 
   Future<void> loadEmployees() async {
     _isLoading = true;
@@ -417,8 +433,18 @@ class EmployeeProvider extends ChangeNotifier {
 
     try {
       _employees = await EmployeeService().getAllEmployees();
+      
+      // Load statistics
+      _stats = await EmployeeService().getEmployeeStats();
+      
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Loaded ${_employees.length} employees');
+      }
     } catch (e) {
       _error = e.toString();
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Error loading employees: $e');
+      }
     }
 
     _isLoading = false;
@@ -427,16 +453,32 @@ class EmployeeProvider extends ChangeNotifier {
 
   Future<bool> createEmployee(models.User user) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
+      // Validasi NIP unik
+      final nipExists = await EmployeeService().isNipExists(user.nip);
+      if (nipExists) {
+        _error = 'NIP ${user.nip} sudah digunakan';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       await EmployeeService().createEmployee(user);
       await loadEmployees(); // Refresh list
-      _isLoading = false;
-      notifyListeners();
+      
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Employee created successfully');
+      }
+      
       return true;
     } catch (e) {
       _error = e.toString();
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Error creating employee: $e');
+      }
       _isLoading = false;
       notifyListeners();
       return false;
@@ -445,16 +487,32 @@ class EmployeeProvider extends ChangeNotifier {
 
   Future<bool> updateEmployee(models.User user) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
+      // Validasi NIP unik (exclude current user)
+      final nipExists = await EmployeeService().isNipExists(user.nip, excludeUserId: user.uuidUser);
+      if (nipExists) {
+        _error = 'NIP ${user.nip} sudah digunakan oleh pegawai lain';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       await EmployeeService().updateEmployee(user);
       await loadEmployees(); // Refresh list
-      _isLoading = false;
-      notifyListeners();
+      
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Employee updated successfully');
+      }
+      
       return true;
     } catch (e) {
       _error = e.toString();
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Error updating employee: $e');
+      }
       _isLoading = false;
       notifyListeners();
       return false;
@@ -463,16 +521,23 @@ class EmployeeProvider extends ChangeNotifier {
 
   Future<bool> deleteEmployee(String userId) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
       await EmployeeService().deleteEmployee(userId);
       await loadEmployees(); // Refresh list
-      _isLoading = false;
-      notifyListeners();
+      
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Employee deleted successfully');
+      }
+      
       return true;
     } catch (e) {
       _error = e.toString();
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Error deleting employee: $e');
+      }
       _isLoading = false;
       notifyListeners();
       return false;
@@ -488,9 +553,17 @@ class EmployeeProvider extends ChangeNotifier {
     try {
       await EmployeeService().updateHakCuti(userId, jenisCuti, totalCuti, sisaCuti);
       await loadEmployees(); // Refresh list
+      
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Hak cuti updated successfully');
+      }
+      
       return true;
     } catch (e) {
       _error = e.toString();
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Error updating hak cuti: $e');
+      }
       notifyListeners();
       return false;
     }
@@ -527,6 +600,39 @@ class EmployeeProvider extends ChangeNotifier {
 
     return filtered;
   }
+
+  // Method untuk mendapatkan employee berdasarkan ID
+  models.User? getEmployeeById(String userId) {
+    try {
+      return _employees.firstWhere((emp) => emp.uuidUser == userId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Method untuk clear error
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // Method untuk mendapatkan employees berdasarkan role
+  List<models.User> getEmployeesByRole(UserRole role) {
+    return _employees.where((emp) => emp.role == role).toList();
+  }
+
+  // Method untuk refresh data tanpa loading indicator
+  Future<void> refreshData() async {
+    try {
+      _employees = await EmployeeService().getAllEmployees();
+      _stats = await EmployeeService().getEmployeeStats();
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('EmployeeProvider: Error refreshing data: $e');
+      }
+    }
+  }
 }
 
 class NotificationProvider extends ChangeNotifier {
@@ -546,7 +652,20 @@ class NotificationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Mock notifications for now - replace with real implementation
+      // Gunakan NotificationService untuk load real data
+      final notificationList = await NotificationService().getNotifications(userId);
+      _notifications.clear();
+      _notifications.addAll(notificationList);
+      
+      _unreadCount = _notifications.where((n) => !n.isRead).length;
+      
+      if (kDebugMode) {
+        debugPrint('NotificationProvider: Loaded ${_notifications.length} notifications, ${_unreadCount} unread');
+      }
+    } catch (e) {
+      _error = e.toString();
+      
+      // Fallback ke mock data jika service belum tersedia
       _notifications.clear();
       _notifications.addAll([
         models.NotificationModel(
@@ -569,8 +688,10 @@ class NotificationProvider extends ChangeNotifier {
         ),
       ]);
       _unreadCount = _notifications.where((n) => !n.isRead).length;
-    } catch (e) {
-      _error = e.toString();
+      
+      if (kDebugMode) {
+        debugPrint('NotificationProvider: Using mock data due to error: $e');
+      }
     }
 
     _isLoading = false;
@@ -578,30 +699,88 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   Future<void> markAsRead(String notificationId) async {
-    final index = _notifications.indexWhere((n) => n.id == notificationId);
-    if (index != -1) {
-      _notifications[index] = _notifications[index].copyWith(isRead: true);
-      _unreadCount = _notifications.where((n) => !n.isRead).length;
-      notifyListeners();
+    try {
+      await NotificationService().markAsRead(notificationId);
+      
+      final index = _notifications.indexWhere((n) => n.id == notificationId);
+      if (index != -1) {
+        _notifications[index] = _notifications[index].copyWith(isRead: true);
+        _unreadCount = _notifications.where((n) => !n.isRead).length;
+        notifyListeners();
+      }
+    } catch (e) {
+      // Fallback ke local update
+      final index = _notifications.indexWhere((n) => n.id == notificationId);
+      if (index != -1) {
+        _notifications[index] = _notifications[index].copyWith(isRead: true);
+        _unreadCount = _notifications.where((n) => !n.isRead).length;
+        notifyListeners();
+      }
+      
+      if (kDebugMode) {
+        debugPrint('NotificationProvider: Error marking as read: $e');
+      }
     }
   }
 
   Future<void> markAllAsRead() async {
-    for (int i = 0; i < _notifications.length; i++) {
-      if (!_notifications[i].isRead) {
-        _notifications[i] = _notifications[i].copyWith(isRead: true);
+    try {
+      // Mark all as read di server
+      for (final notification in _notifications.where((n) => !n.isRead)) {
+        await NotificationService().markAsRead(notification.id);
+      }
+      
+      // Update local state
+      for (int i = 0; i < _notifications.length; i++) {
+        if (!_notifications[i].isRead) {
+          _notifications[i] = _notifications[i].copyWith(isRead: true);
+        }
+      }
+      _unreadCount = 0;
+      notifyListeners();
+    } catch (e) {
+      // Fallback ke local update
+      for (int i = 0; i < _notifications.length; i++) {
+        if (!_notifications[i].isRead) {
+          _notifications[i] = _notifications[i].copyWith(isRead: true);
+        }
+      }
+      _unreadCount = 0;
+      notifyListeners();
+      
+      if (kDebugMode) {
+        debugPrint('NotificationProvider: Error marking all as read: $e');
       }
     }
-    _unreadCount = 0;
-    notifyListeners();
   }
 
   Future<void> addNotification(models.NotificationModel notification) async {
-    _notifications.insert(0, notification);
-    if (!notification.isRead) {
-      _unreadCount++;
+    try {
+      await NotificationService().createNotification(
+        userId: notification.userId,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        data: notification.data,
+      );
+      
+      _notifications.insert(0, notification);
+      if (!notification.isRead) {
+        _unreadCount++;
+      }
+      notifyListeners();
+    } catch (e) {
+      // Fallback ke local add
+      _notifications.insert(0, notification);
+      if (!notification.isRead) {
+        _unreadCount++;
+      }
+      notifyListeners();
+      
+      if (kDebugMode) {
+        debugPrint('NotificationProvider: Error adding notification: $e');
+      }
     }
-    notifyListeners();
   }
 
   Future<void> removeNotification(String notificationId) async {
@@ -614,5 +793,111 @@ class NotificationProvider extends ChangeNotifier {
       }
       notifyListeners();
     }
+  }
+
+  // Method untuk clear error
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // Method untuk filter notifications berdasarkan type
+  List<models.NotificationModel> getFilteredNotifications(String? typeFilter) {
+    if (typeFilter == null || typeFilter == 'all') {
+      return _notifications;
+    }
+    return _notifications.where((n) => n.type == typeFilter).toList();
+  }
+
+  // Method untuk mendapatkan unread notifications saja
+  List<models.NotificationModel> get unreadNotifications {
+    return _notifications.where((n) => !n.isRead).toList();
+  }
+}
+
+// Provider tambahan untuk Backup & Storage
+class BackupProvider extends ChangeNotifier {
+  List<models.BackupRecord> _backupHistory = [];
+  models.StorageInfo? _storageInfo;
+  models.AutoBackupSettings? _autoBackupSettings;
+  bool _isLoading = false;
+  String? _error;
+
+  List<models.BackupRecord> get backupHistory => _backupHistory;
+  models.StorageInfo? get storageInfo => _storageInfo;
+  models.AutoBackupSettings? get autoBackupSettings => _autoBackupSettings;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  Future<void> loadBackupData() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _backupHistory = await BackupService().getBackupHistory();
+      _storageInfo = await BackupService().getStorageInfo();
+      _autoBackupSettings = await BackupService().getAutoBackupSettings();
+    } catch (e) {
+      _error = e.toString();
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> createBackup() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final newBackup = await BackupService().createBackup();
+      _backupHistory.insert(0, newBackup);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteBackup(String backupId) async {
+    try {
+      await BackupService().deleteBackup(backupId);
+      _backupHistory.removeWhere((backup) => backup.id == backupId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> setAutoBackup(bool enabled) async {
+    try {
+      await BackupService().setAutoBackup(enabled);
+      if (_autoBackupSettings != null) {
+        _autoBackupSettings = models.AutoBackupSettings(
+          isEnabled: enabled,
+          schedule: _autoBackupSettings!.schedule,
+          retentionDays: _autoBackupSettings!.retentionDays,
+        );
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 }
