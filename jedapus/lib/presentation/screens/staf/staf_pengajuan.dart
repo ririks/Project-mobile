@@ -14,7 +14,7 @@ class StafPengajuanScreen extends StatefulWidget {
 class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
   final _formKey = GlobalKey<FormState>();
   final _alasanController = TextEditingController();
-  
+
   String _selectedJenisCuti = 'Cuti Tahunan';
   DateTime? _tanggalMulai;
   DateTime? _tanggalSelesai;
@@ -33,33 +33,71 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(),
-              
-              const SizedBox(height: 24),
-              
-              // Form Card
-              _buildFormCard(),
-              
-              const SizedBox(height: 24),
-              
-              // Submit Button
-              _buildSubmitButton(),
-            ],
+Widget build(BuildContext context) {
+  return Consumer<CutiProvider>(
+    builder: (context, cutiProvider, child) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                _buildHeader(),
+                const SizedBox(height: 24),
+                
+                // Error message jika ada
+                if (cutiProvider.error != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE83C3C).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE83C3C)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: const Color(0xFFE83C3C),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            cutiProvider.error!,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              color: const Color(0xFFE83C3C),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () => cutiProvider.clearError(),
+                        ),
+                      ],
+                    ),
+                  ),
+                
+                // Form Card
+                _buildFormCard(),
+                const SizedBox(height: 24),
+                
+                // Submit Button
+                _buildSubmitButton(),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
+
 
   Widget _buildHeader() {
     return Container(
@@ -114,9 +152,9 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
             _buildSectionTitle('Jenis Cuti'),
             const SizedBox(height: 8),
             _buildDropdown(),
-            
+
             const SizedBox(height: 20),
-            
+
             // Tanggal Mulai
             _buildSectionTitle('Tanggal Mulai'),
             const SizedBox(height: 8),
@@ -125,9 +163,9 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
               _tanggalMulai,
               (date) => setState(() => _tanggalMulai = date),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Tanggal Selesai
             _buildSectionTitle('Tanggal Selesai'),
             const SizedBox(height: 8),
@@ -136,15 +174,15 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
               _tanggalSelesai,
               (date) => setState(() => _tanggalSelesai = date),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Durasi (Auto calculated)
             if (_tanggalMulai != null && _tanggalSelesai != null)
               _buildDurasiInfo(),
-            
+
             const SizedBox(height: 20),
-            
+
             // Alasan
             _buildSectionTitle('Alasan Cuti'),
             const SizedBox(height: 8),
@@ -200,7 +238,8 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
     );
   }
 
-  Widget _buildDateField(String hint, DateTime? selectedDate, Function(DateTime) onDateSelected) {
+  Widget _buildDateField(
+      String hint, DateTime? selectedDate, Function(DateTime) onDateSelected) {
     return GestureDetector(
       onTap: () async {
         final DateTime? picked = await showDatePicker(
@@ -230,9 +269,7 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                selectedDate != null
-                    ? _formatDate(selectedDate)
-                    : hint,
+                selectedDate != null ? _formatDate(selectedDate) : hint,
                 style: GoogleFonts.montserrat(
                   fontSize: 14,
                   color: selectedDate != null
@@ -315,43 +352,60 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
   }
 
   Widget _buildSubmitButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: _isSubmitting ? null : _submitPengajuan,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF4A5FBF),
-          foregroundColor: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+  return Consumer<CutiProvider>(
+    builder: (context, cutiProvider, child) {
+      final isLoading = cutiProvider.isLoading || _isSubmitting;
+      
+      return SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: isLoading ? null : _submitPengajuan,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4A5FBF),
+            foregroundColor: Colors.white,
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
+          child: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                  ),
+                )
+              : Text(
+                  'Ajukan Cuti',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
         ),
-        child: _isSubmitting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Text(
-                'Ajukan Cuti',
-                style: GoogleFonts.montserrat(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   String _formatDate(DateTime date) {
     const months = [
-      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      '',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember'
     ];
     return '${date.day} ${months[date.month]} ${date.year}';
   }
@@ -392,21 +446,37 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
     });
 
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // Success
-      if (mounted) {
+      // Ambil user ID dari AuthProvider
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final currentUser = authProvider.currentUser;
+
+      if (currentUser == null) {
+        throw Exception('User tidak ditemukan');
+      }
+
+      // Gunakan CutiProvider untuk menyimpan ke database
+      final cutiProvider = Provider.of<CutiProvider>(context, listen: false);
+
+      final success = await cutiProvider.createPengajuan(
+        userId: currentUser.uuidUser,
+        jenisCuti: _selectedJenisCuti,
+        tanggalMulai: _tanggalMulai!,
+        tanggalSelesai: _tanggalSelesai!,
+        alasan: _alasanController.text.trim(),
+      );
+
+      if (success && mounted) {
+        // Berhasil menyimpan
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Pengajuan cuti berhasil dikirim',
+              'Pengajuan cuti berhasil dikirim dan disimpan ke database',
               style: GoogleFonts.montserrat(),
             ),
             backgroundColor: const Color(0xFF4A5FBF),
           ),
         );
-        
+
         // Reset form
         _alasanController.clear();
         setState(() {
@@ -414,13 +484,32 @@ class _StafPengajuanScreenState extends State<StafPengajuanScreen> {
           _tanggalMulai = null;
           _tanggalSelesai = null;
         });
+
+        // Refresh dashboard data jika ada
+        final dashboardProvider =
+            Provider.of<DashboardProvider>(context, listen: false);
+        dashboardProvider.refresh(currentUser.uuidUser, currentUser.role);
+      } else {
+        // Gagal menyimpan
+        final errorMessage = cutiProvider.error ?? 'Gagal menyimpan pengajuan';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                errorMessage,
+                style: GoogleFonts.montserrat(),
+              ),
+              backgroundColor: const Color(0xFFE83C3C),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Gagal mengirim pengajuan: $e',
+              'Terjadi kesalahan: $e',
               style: GoogleFonts.montserrat(),
             ),
             backgroundColor: const Color(0xFFE83C3C),
