@@ -16,17 +16,16 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
   String _selectedJabatan = 'Semua';
   String? selectedUuidUser; // Untuk simpan pegawai terpilih di dropdown tambah profil
 
-
   bool isProfilLengkap(models.ProfilStaf? profil) {
-  if (profil == null) return false;
-  return profil.jabatan != null && profil.jabatan!.isNotEmpty &&
-         profil.unitKerja != null && profil.unitKerja!.isNotEmpty &&
-         profil.tempatLahir != null && profil.tempatLahir!.isNotEmpty &&
-         profil.tanggalLahir != null &&
-         profil.jenisKelamin != null && profil.jenisKelamin!.isNotEmpty &&
-         profil.alamat != null && profil.alamat!.isNotEmpty &&
-         profil.noTelepon != null && profil.noTelepon!.isNotEmpty;
-}
+    if (profil == null) return false;
+    return profil.jabatan != null && profil.jabatan!.isNotEmpty &&
+           profil.unitKerja != null && profil.unitKerja!.isNotEmpty &&
+           profil.tempatLahir != null && profil.tempatLahir!.isNotEmpty &&
+           profil.tanggalLahir != null &&
+           profil.jenisKelamin != null && profil.jenisKelamin!.isNotEmpty &&
+           profil.alamat != null && profil.alamat!.isNotEmpty &&
+           profil.noTelepon != null && profil.noTelepon!.isNotEmpty;
+  }
 
   @override
   void initState() {
@@ -172,7 +171,9 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
       builder: (context, employeeProvider, _) {
         if (employeeProvider.isLoading) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(
+              color: Color(0xFF4A5FBF),
+            ),
           );
         }
 
@@ -357,16 +358,16 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
                 decoration: BoxDecoration(
                   color: isProfilLengkap(profil) ? const Color(0xFF10B981) : const Color(0xFFF5B500),
                   borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    isProfilLengkap(profil) ? 'Lengkap' : 'Belum Lengkap',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                ),
+                child: Text(
+                  isProfilLengkap(profil) ? 'Lengkap' : 'Belum Lengkap',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
+              ),
             ],
           ),
           
@@ -500,15 +501,14 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
   }
 
   void _showTambahProfilModal() {
-  setState(() {
-    selectedUuidUser = null; // Reset setiap kali modal tambah dibuka
-  });
-  showDialog(
-    context: context,
-    builder: (context) => _buildProfilFormModal(),
-  );
-}
-
+    setState(() {
+      selectedUuidUser = null; // Reset setiap kali modal tambah dibuka
+    });
+    showDialog(
+      context: context,
+      builder: (context) => _buildProfilFormModal(),
+    );
+  }
 
   void _showEditProfilModal(models.User employee) {
     showDialog(
@@ -524,6 +524,7 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
     );
   }
 
+  // PERBAIKAN UTAMA: Modal Form dengan StatefulBuilder untuk Dropdown Jenis Kelamin
   Widget _buildProfilFormModal({models.User? employee}) {
     final isEdit = employee != null;
     final profil = employee?.profilStaf;
@@ -536,6 +537,7 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
     final alamatController = TextEditingController(text: profil?.alamat ?? '');
     final noTeleponController = TextEditingController(text: profil?.noTelepon ?? '');
     
+    // State variables yang akan dikelola oleh StatefulBuilder
     String selectedJenisKelamin = profil?.jenisKelamin ?? 'L';
     DateTime? selectedTanggalLahir = profil?.tanggalLahir;
     DateTime? selectedTanggalMasuk = profil?.tanggalMasuk;
@@ -544,198 +546,250 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Container(
-        constraints: const BoxConstraints(maxHeight: 700),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Color(0xFF4A5FBF),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      isEdit ? 'Edit Profil - ${employee.namaUser}' : 'Tambah Profil Pegawai',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+      child: StatefulBuilder(
+        builder: (context, setDialogState) {
+          return Container(
+            constraints: const BoxConstraints(maxHeight: 700),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF4A5FBF),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          isEdit ? 'Edit Profil - ${employee!.namaUser}' : 'Tambah Profil Pegawai',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Form Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    if (!isEdit) ...[
-                      // Dropdown Pilih Pegawai (hanya untuk tambah baru)
-                      _buildEmployeeDropdown(),
-                      const SizedBox(height: 16),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
                     ],
-                    
-                    _buildFormField('Nama Lengkap', namaController, enabled: !isEdit),
-                    const SizedBox(height: 16),
-                    _buildFormField('Jabatan', jabatanController),
-                    const SizedBox(height: 16),
-                    _buildFormField('Unit Kerja', unitKerjaController),
-                    const SizedBox(height: 16),
-                    
-                    // Jenis Kelamin Dropdown
-                    _buildGenderDropdown(selectedJenisKelamin, (value) {
-                      selectedJenisKelamin = value;
-                    }),
-                    const SizedBox(height: 16),
-                    
-                    _buildFormField('Tempat Lahir', tempatLahirController),
-                    const SizedBox(height: 16),
-                    
-                    // Date Pickers
-                    _buildDateField('Tanggal Lahir', selectedTanggalLahir, (date) {
-                      selectedTanggalLahir = date;
-                    }),
-                    const SizedBox(height: 16),
-                    
-                    _buildDateField('Tanggal Masuk', selectedTanggalMasuk, (date) {
-                      selectedTanggalMasuk = date;
-                    }),
-                    const SizedBox(height: 16),
-                    
-                    _buildFormField('No. Telepon', noTeleponController),
-                    const SizedBox(height: 16),
-                    _buildFormField('Alamat', alamatController, maxLines: 3),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            
-            // Actions
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Color(0xFFF0F0F0)),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF718096),
-                        elevation: 0,
-                        side: const BorderSide(color: Color(0xFFE5E5E5)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Batal',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                
+                // Form Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        if (!isEdit) ...[
+                          // Dropdown Pilih Pegawai (hanya untuk tambah baru)
+                          _buildEmployeeDropdown(),
+                          const SizedBox(height: 16),
+                        ],
+                        
+                        _buildFormField('Nama Lengkap', namaController, enabled: !isEdit),
+                        const SizedBox(height: 16),
+                        _buildFormField('Jabatan', jabatanController),
+                        const SizedBox(height: 16),
+                        _buildFormField('Unit Kerja', unitKerjaController),
+                        const SizedBox(height: 16),
+                        
+                        // Jenis Kelamin Dropdown dengan StatefulBuilder
+                        _buildGenderDropdownFixed(selectedJenisKelamin, (value) {
+                          setDialogState(() {
+                            selectedJenisKelamin = value;
+                          });
+                        }),
+                        const SizedBox(height: 16),
+                        
+                        _buildFormField('Tempat Lahir', tempatLahirController),
+                        const SizedBox(height: 16),
+                        
+                        // Date Pickers dengan StatefulBuilder
+                        _buildDateFieldFixed('Tanggal Lahir', selectedTanggalLahir, (date) {
+                          setDialogState(() {
+                            selectedTanggalLahir = date;
+                          });
+                        }),
+                        const SizedBox(height: 16),
+                        
+                        _buildDateFieldFixed('Tanggal Masuk', selectedTanggalMasuk, (date) {
+                          setDialogState(() {
+                            selectedTanggalMasuk = date;
+                          });
+                        }),
+                        const SizedBox(height: 16),
+                        
+                        _buildFormField('No. Telepon', noTeleponController),
+                        const SizedBox(height: 16),
+                        _buildFormField('Alamat', alamatController, maxLines: 3),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-  final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
-
-  if (namaController.text.trim().isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Nama lengkap wajib diisi')),
-    );
-    return;
-  }
-
-  final profilBaru = models.ProfilStaf(
-    uuidProfil: profil?.uuidProfil ?? '',
-    uuidUser: isEdit ? employee!.uuidUser : selectedUuidUser!,
-    namaLengkap: namaController.text,
-    jabatan: jabatanController.text,
-    unitKerja: unitKerjaController.text,
-    tanggalMasuk: selectedTanggalMasuk,
-    jenisKelamin: selectedJenisKelamin,
-    tempatLahir: tempatLahirController.text,
-    tanggalLahir: selectedTanggalLahir,
-    alamat: alamatController.text,
-    noTelepon: noTeleponController.text,
-    fotoProfil: profil?.fotoProfil,
-    createdAt: profil?.createdAt ?? DateTime.now(),
-    updatedAt: DateTime.now(),
-  );
-
-  if (isEdit) {
-    await employeeProvider.addOrUpdateProfilStaf(
-      uuidUser: employee!.uuidUser,
-      profilStaf: profilBaru,
-    );
-  } else {
-    if (selectedUuidUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Pilih pegawai terlebih dahulu')),
-      );
-      return;
-    }
-    await employeeProvider.addOrUpdateProfilStaf(
-      uuidUser: selectedUuidUser!,
-      profilStaf: profilBaru,
-    );
-  }
-
-  Navigator.pop(context);
-  if (mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isEdit ? 'Profil berhasil diupdate' : 'Profil berhasil ditambahkan'),
-        backgroundColor: const Color(0xFF4A5FBF),
-      ),
-    );
-  }
-},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A5FBF),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        isEdit ? 'Update' : 'Simpan',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                ),
+                
+                // Actions
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Color(0xFFF0F0F0)),
                     ),
                   ),
-                ],
-              ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF718096),
+                            elevation: 0,
+                            side: const BorderSide(color: Color(0xFFE5E5E5)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Batal',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
+                            
+                            // Validasi input
+                            if (namaController.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Nama lengkap wajib diisi',
+                                    style: GoogleFonts.montserrat(),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Validasi jenis kelamin
+                            if (selectedJenisKelamin.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Jenis kelamin wajib dipilih',
+                                    style: GoogleFonts.montserrat(),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            final profilBaru = models.ProfilStaf(
+                              uuidProfil: profil?.uuidProfil ?? '',
+                              uuidUser: isEdit ? employee!.uuidUser : selectedUuidUser!,
+                              namaLengkap: namaController.text,
+                              jabatan: jabatanController.text,
+                              unitKerja: unitKerjaController.text,
+                              tanggalMasuk: selectedTanggalMasuk,
+                              jenisKelamin: selectedJenisKelamin,
+                              tempatLahir: tempatLahirController.text,
+                              tanggalLahir: selectedTanggalLahir,
+                              alamat: alamatController.text,
+                              noTelepon: noTeleponController.text,
+                              fotoProfil: profil?.fotoProfil,
+                              createdAt: profil?.createdAt ?? DateTime.now(),
+                              updatedAt: DateTime.now(),
+                            );
+
+                            try {
+                              if (isEdit) {
+                                await employeeProvider.addOrUpdateProfilStaf(
+                                  uuidUser: employee!.uuidUser,
+                                  profilStaf: profilBaru,
+                                );
+                              } else {
+                                if (selectedUuidUser == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Pilih pegawai terlebih dahulu',
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                await employeeProvider.addOrUpdateProfilStaf(
+                                  uuidUser: selectedUuidUser!,
+                                  profilStaf: profilBaru,
+                                );
+                              }
+
+                              Navigator.pop(context);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isEdit ? 'Profil berhasil diupdate' : 'Profil berhasil ditambahkan',
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                    backgroundColor: const Color(0xFF4A5FBF),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Error: ${e.toString()}',
+                                    style: GoogleFonts.montserrat(),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4A5FBF),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            isEdit ? 'Update' : 'Simpan',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -923,8 +977,8 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
       builder: (context, employeeProvider, _) {
         // Filter employees yang belum punya profil lengkap
         final employeesWithoutProfile = employeeProvider.employees
-        .where((emp) => !isProfilLengkap(emp.profilStaf))
-        .toList();
+            .where((emp) => !isProfilLengkap(emp.profilStaf))
+            .toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -958,7 +1012,7 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
                   isExpanded: true,
                   items: employeesWithoutProfile.map((employee) {
                     if (selectedUuidUser != null &&
-                    !employeesWithoutProfile.any((e) => e.uuidUser == selectedUuidUser)) {
+                        !employeesWithoutProfile.any((e) => e.uuidUser == selectedUuidUser)) {
                       selectedUuidUser = null;
                     }
                     return DropdownMenuItem<String>(
@@ -978,14 +1032,66 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
                     });
                   },
                 ),
+              ),
             ),
-          ),
           ],
         );
       },
     );
   }
 
+  // PERBAIKAN UTAMA: Dropdown Jenis Kelamin yang Berfungsi
+  Widget _buildGenderDropdownFixed(String selectedValue, Function(String) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Jenis Kelamin',
+          style: GoogleFonts.montserrat(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF2D3748),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E5E5)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: selectedValue,
+              isExpanded: true,
+              items: const [
+                DropdownMenuItem(
+                  value: 'L', 
+                  child: Text('Laki-laki')
+                ),
+                DropdownMenuItem(
+                  value: 'P', 
+                  child: Text('Perempuan')
+                ),
+              ],
+              onChanged: (String? value) {
+                if (value != null) {
+                  onChanged(value);
+                }
+              },
+              style: GoogleFonts.montserrat(
+                fontSize: 14,
+                color: const Color(0xFF2D3748),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Method legacy untuk backward compatibility
   Widget _buildGenderDropdown(String selectedValue, Function(String) onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1024,6 +1130,82 @@ class _HRDKelolaProfileScreenState extends State<HRDKelolaProfileScreen> {
     );
   }
 
+  // PERBAIKAN UTAMA: Date Field yang Berfungsi dengan StatefulBuilder
+  Widget _buildDateFieldFixed(String label, DateTime? selectedDate, Function(DateTime) onDateSelected) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.montserrat(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF2D3748),
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () async {
+            final DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: selectedDate ?? DateTime.now(),
+              firstDate: DateTime(1950),
+              lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.light(
+                      primary: Color(0xFF4A5FBF),
+                      onPrimary: Colors.white,
+                      surface: Colors.white,
+                      onSurface: Color(0xFF2D3748),
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
+            );
+            if (picked != null) {
+              onDateSelected(picked);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E5E5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today,
+                  color: Color(0xFF4A5FBF),
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    selectedDate != null
+                        ? _formatDate(selectedDate)
+                        : 'Pilih $label',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      color: selectedDate != null
+                          ? const Color(0xFF2D3748)
+                          : const Color(0xFF718096),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Method legacy untuk backward compatibility
   Widget _buildDateField(String label, DateTime? selectedDate, Function(DateTime) onDateSelected) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
