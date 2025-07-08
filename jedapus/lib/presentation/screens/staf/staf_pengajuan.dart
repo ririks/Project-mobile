@@ -60,9 +60,9 @@ Widget build(BuildContext context) {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.error_outline,
-                          color: const Color(0xFFE83C3C),
+                          color: Color(0xFFE83C3C),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -261,9 +261,9 @@ Widget build(BuildContext context) {
         ),
         child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.calendar_today,
-              color: const Color(0xFF4A5FBF),
+              color: Color(0xFF4A5FBF),
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -294,9 +294,9 @@ Widget build(BuildContext context) {
       ),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.info_outline,
-            color: const Color(0xFF4A5FBF),
+            color: Color(0xFF4A5FBF),
             size: 20,
           ),
           const SizedBox(width: 12),

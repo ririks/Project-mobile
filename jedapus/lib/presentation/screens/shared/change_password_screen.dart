@@ -32,7 +32,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background (bisa pakai _buildBackground() dari LoginScreen)
           _buildBackground(),
           SafeArea(
             child: SingleChildScrollView(
@@ -42,22 +41,22 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Column(
                     children: [
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 40), // Dikurangi dari 60 ke 40 (-20px)
                       _buildLogo(),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12), // Dikurangi dari 20 ke 12 (-8px)
                       Text(
                         'GANTI PASSWORD',
                         style: GoogleFonts.montserrat(
-                          fontSize: 24,
+                          fontSize: 22, // Dikurangi dari 24 ke 22
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF4A5FBF),
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 28), // Dikurangi dari 40 ke 28 (-12px)
                       _buildChangePasswordForm(),
                       const Spacer(),
                       _buildFooter(),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 25), // Dikurangi dari 40 ke 25 (-15px)
                     ],
                   ),
                 ),
@@ -70,7 +69,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   Widget _buildBackground() {
-    // Bisa copy dari LoginScreen
     return Container(
       height: double.infinity,
       width: double.infinity,
@@ -88,10 +86,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   Widget _buildLogo() {
-    // Bisa copy dari LoginScreen
     return SizedBox(
-      width: 120,
-      height: 120,
+      width: 100, 
+      height: 100, 
       child: Image.asset(
         'assets/images/global.png',
         fit: BoxFit.contain,
@@ -101,15 +98,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Widget _buildChangePasswordForm() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(24), 
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20), 
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 15, 
+            offset: const Offset(0, 8), 
           ),
         ],
       ),
@@ -119,15 +116,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // NIP
-            Text('NIP', style: GoogleFonts.montserrat(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text(
+              'NIP',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w600,
+                fontSize: 14, 
+              ),
+            ),
+            const SizedBox(height: 6), 
             TextFormField(
               controller: _nipController,
               keyboardType: TextInputType.number,
+              style: GoogleFonts.montserrat(fontSize: 14), 
               decoration: InputDecoration(
                 hintText: '12345678',
-                prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF4A5FBF)),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                hintStyle: GoogleFonts.montserrat(fontSize: 14),
+                prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF4A5FBF), size: 20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), 
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) return 'NIP tidak boleh kosong';
@@ -135,20 +141,30 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16), 
+            
             // Previous Password
-            Text('Previous Password', style: GoogleFonts.montserrat(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text(
+              'Previous Password',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 6), 
             TextFormField(
               controller: _prevPasswordController,
               obscureText: !_isPrevPasswordVisible,
+              style: GoogleFonts.montserrat(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Password lama',
-                prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4A5FBF)),
+                hintStyle: GoogleFonts.montserrat(fontSize: 14),
+                prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4A5FBF), size: 20),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _isPrevPasswordVisible ? Icons.visibility : Icons.visibility_off,
                     color: const Color(0xFF718096),
+                    size: 20,
                   ),
                   onPressed: () {
                     setState(() {
@@ -156,27 +172,38 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     });
                   },
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Password lama tidak boleh kosong';
                 return null;
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16), 
+            
             // New Password
-            Text('New Password', style: GoogleFonts.montserrat(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text(
+              'New Password',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 6), // Dikurangi dari 8 ke 6
             TextFormField(
               controller: _newPasswordController,
               obscureText: !_isNewPasswordVisible,
+              style: GoogleFonts.montserrat(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Password baru',
-                prefixIcon: const Icon(Icons.lock, color: Color(0xFF4A5FBF)),
+                hintStyle: GoogleFonts.montserrat(fontSize: 14),
+                prefixIcon: const Icon(Icons.lock, color: Color(0xFF4A5FBF), size: 20),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _isNewPasswordVisible ? Icons.visibility : Icons.visibility_off,
                     color: const Color(0xFF718096),
+                    size: 20,
                   ),
                   onPressed: () {
                     setState(() {
@@ -184,7 +211,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     });
                   },
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Password baru tidak boleh kosong';
@@ -192,11 +220,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24), // Dikurangi dari 32 ke 24
+            
             // Button
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: 48, // Dikurangi dari 56 ke 48
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _handleChangePassword,
                 style: ElevatedButton.styleFrom(
@@ -204,16 +233,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   foregroundColor: Colors.white,
                   elevation: 2,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12), // Dikurangi dari 16 ke 12
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
                       )
                     : Text(
                         'Ganti Password',
-                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14, // Tambahkan ukuran font
+                        ),
                       ),
               ),
             ),
@@ -227,7 +264,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Text(
       'Developed by Trikandi',
       style: GoogleFonts.montserrat(
-        fontSize: 12,
+        fontSize: 11, // Dikurangi dari 12 ke 11
         color: Colors.white.withOpacity(0.8),
       ),
       textAlign: TextAlign.center,
@@ -251,12 +288,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
 
       if (!isPrevPasswordValid) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Password lama salah!'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Password lama salah!',
+                style: GoogleFonts.montserrat(),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         setState(() {
           _isLoading = false;
         });
@@ -269,34 +311,52 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         _newPasswordController.text.trim(),
       );
 
-      if (success) {
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Password berhasil diganti!',
+                style: GoogleFonts.montserrat(),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Reset form
+          _formKey.currentState!.reset();
+          _nipController.clear();
+          _prevPasswordController.clear();
+          _newPasswordController.clear();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Gagal mengganti password!',
+                style: GoogleFonts.montserrat(),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Password berhasil diganti!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Reset form
-        _formKey.currentState!.reset();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengganti password!'),
+            content: Text(
+              'Terjadi kesalahan. Silakan coba lagi.',
+              style: GoogleFonts.montserrat(),
+            ),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Terjadi kesalahan. Silakan coba lagi.'),
-          backgroundColor: Colors.red,
-        ),
-      );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }
