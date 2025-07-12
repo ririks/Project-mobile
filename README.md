@@ -82,7 +82,8 @@ JEDAPUS merupakan sistem manajemen cuti digital yang dirancang khusus untuk Inst
     ```
 
 ### Langkah Instalasi
-    Jalankan perintah berikut dari direktori root proyek:
+    
+Jalankan perintah berikut dari direktori root proyek:
 
 1. **Clone Repository**
     ```bash
@@ -96,27 +97,27 @@ JEDAPUS merupakan sistem manajemen cuti digital yang dirancang khusus untuk Inst
     ```
 
 3. **Konfigurasi Environtment**
-    -- Copy file environment
+    *Copy file environment*
     ```bash
     cp .env.example .env
     ```
-    -- Edit konfigurasi Supabase
+    *Edit konfigurasi Supabase*
     ```bash
     nano .env
     ```
 
 4. **Setup Database**
-    -- Jalankan script SQL untuk membuat tabel
+    *Jalankan script SQL untuk membuat tabel*
     ```bash
     psql -h your-supabase-host -d your-database -f database/schema.sql
     ```
 
 5. **Jalankan Aplikasi**
-    -- Development Mode
+    *Development Mode*
     ```bash
     flutter run
     ```
-    -- Build untuk production
+    *Build untuk production*
     ```bash
     flutter build apk
     ```
